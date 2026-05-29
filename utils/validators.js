@@ -7,15 +7,16 @@
 const { z } = require('zod');
 
 // ── Shared field definitions ────────────────────────────────
-const safeString = (max = 200) =>
-  z.string()
-    .max(max, `Maximum ${max} characters`)
+const safeString = (max = 200, min = 0) => {
+  let s = z.string().trim().max(max, `Maximum ${max} characters`);
+  if (min > 0) s = s.min(min, `Minimum ${min} characters`);
+  return s
     .regex(/^[^<>{}]*$/, { message: 'Invalid characters detected' })
     .refine(
       val => !/javascript\s*:/i.test(val) && !/on\w+\s*=/i.test(val) && !/data\s*:/i.test(val),
       { message: 'Invalid content detected' }
-    )
-    .trim();
+    );
+};
 
 const emailField = z
   .string()
@@ -47,7 +48,7 @@ const RefreshSchema = z.object({
 
 // ── Contact form schema ─────────────────────────────────────
 const ContactSchema = z.object({
-  fname: safeString(50).min(1, 'First name required'),
+  fname: safeString(50, 1),
   lname: safeString(50).optional().or(z.literal('')),
   email: emailField,
   phone: phoneField,
@@ -67,7 +68,7 @@ const ContactSchema = z.object({
 
 // ── Admin: Lead management ──────────────────────────────────
 const LeadSchema = z.object({
-  name: safeString(100).min(1, 'Name required'),
+  name: safeString(100, 1),
   email: emailField,
   phone: phoneField,
   service: safeString(100).optional(),
@@ -81,23 +82,23 @@ const LeadStatusSchema = z.object({
 
 // ── Admin: Team member ──────────────────────────────────────
 const TeamMemberSchema = z.object({
-  name: safeString(100).min(1, 'Name required'),
-  role: safeString(100).min(1, 'Role required'),
+  name: safeString(100, 1),
+  role: safeString(100, 1),
   bio: safeString(500).optional(),
   email: emailField,
 });
 
 // ── Admin: Testimonial ──────────────────────────────────────
 const TestimonialSchema = z.object({
-  name: safeString(100).min(1, 'Name required'),
+  name: safeString(100, 1),
   company: safeString(200).optional(),
-  text: safeString(1000).min(10, 'Review must be at least 10 characters'),
+  text: safeString(1000, 10),
   rating: z.number().int().min(1).max(5).default(5),
 });
 
 // ── Admin: Blog post ───────────────────────────────────────
 const BlogPostSchema = z.object({
-  title: safeString(200).min(5, 'Title must be at least 5 characters'),
+  title: safeString(200, 5),
   content: z.string().min(1, 'Content required').max(50000),
   category: z.enum([
     'AI & Technology',
@@ -111,7 +112,7 @@ const BlogPostSchema = z.object({
 
 // ── Admin: Portfolio project ────────────────────────────────
 const ProjectSchema = z.object({
-  name: safeString(100).min(1, 'Project name required'),
+  name: safeString(100, 1),
   category: z.enum(['gym', 'ecom', 'restaurant', 'fashion', 'ai', 'realestate']),
   description: safeString(1000).optional(),
   tags: z.array(safeString(50)).max(10).optional(),
