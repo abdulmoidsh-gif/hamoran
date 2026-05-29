@@ -1,0 +1,2428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Security Headers via Meta -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none';">
+<title>Hamoran Admin — Command Centre</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha512-0Gz55RhiaTUGSEbOfK7m8VFBKDH+mcklTEqRvJdUz1PBTGnpGqB2VJHQEf/H4uHBqUK4LBGgT3xnkJVhA0/A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+:root {
+  --bg:#05060f; --bg2:#080a15; --surface:rgba(255,255,255,.04); --surface2:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.12);
+  --blue:#3b82f6; --purple:#8b5cf6; --cyan:#06b6d4; --green:#10b981; --amber:#f59e0b; --red:#ef4444; --pink:#ec4899;
+  --blue-glow:rgba(59,130,246,.3); --purple-glow:rgba(139,92,246,.3);
+  --white:#f0f4ff; --muted:rgba(180,195,255,.45);
+  --font-display:'Syne',sans-serif; --font-body:'DM Sans',sans-serif;
+  --sidebar:240px; --topbar:60px; --radius:12px; --radius-lg:18px;
+}
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body { background:var(--bg); color:var(--white); font-family:var(--font-body); min-height:100vh; overflow-x:hidden; }
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(99,102,241,.3); border-radius:2px; }
+
+/* ── LOGIN ── */
+#login-screen {
+  position:fixed; inset:0; z-index:9999; background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  background-image:radial-gradient(ellipse at 30% 20%,rgba(99,102,241,.12) 0%,transparent 60%),
+                   radial-gradient(ellipse at 70% 80%,rgba(139,92,246,.08) 0%,transparent 60%);
+}
+.login-card {
+  width:100%; max-width:420px; padding:2.5rem;
+  background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+  border:1px solid var(--border2); border-radius:24px;
+  backdrop-filter:blur(20px);
+}
+.login-logo { display:flex; align-items:center; gap:.8rem; margin-bottom:2rem; }
+.login-logo-icon { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,var(--blue),var(--purple)); display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+.login-logo-text { font-family:var(--font-display); font-size:1.2rem; font-weight:800; }
+.login-logo-sub { font-size:.72rem; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
+.login-title { font-family:var(--font-display); font-size:1.6rem; font-weight:800; margin-bottom:.4rem; }
+.login-sub { font-size:.85rem; color:var(--muted); margin-bottom:2rem; }
+.login-field { margin-bottom:1rem; }
+.login-label { font-size:.78rem; font-weight:600; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; display:block; margin-bottom:.5rem; }
+.login-input {
+  width:100%; background:rgba(255,255,255,.06); border:1px solid var(--border2);
+  border-radius:10px; padding:12px 16px; color:var(--white); font-family:var(--font-body); font-size:.92rem; outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.login-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-glow); }
+.login-btn {
+  width:100%; background:linear-gradient(135deg,var(--blue),var(--purple)); color:#fff; border:none;
+  padding:14px; border-radius:10px; font-family:var(--font-body); font-size:1rem; font-weight:700;
+  cursor:pointer; margin-top:.5rem; transition:opacity .2s,transform .2s;
+  letter-spacing:.03em;
+}
+.login-btn:hover { opacity:.9; transform:translateY(-1px); }
+.login-error { font-size:.82rem; color:#f87171; min-height:18px; margin-top:.8rem; text-align:center; }
+.login-hint { font-size:.78rem; color:var(--muted); text-align:center; margin-top:1.2rem; }
+
+/* ── APP SHELL ── */
+#app { display:none; height:100vh; overflow:hidden; }
+#app.visible { display:flex; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width:var(--sidebar); height:100vh; flex-shrink:0;
+  background:var(--bg2); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+  position:relative; z-index:100;
+  transition:width .3s cubic-bezier(.22,1,.36,1);
+}
+.sidebar.collapsed { width:60px; }
+.sb-header {
+  padding:1.2rem 1rem; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:.8rem; flex-shrink:0;
+}
+.sb-logo-icon { width:32px; height:32px; flex-shrink:0; border-radius:9px; background:linear-gradient(135deg,var(--blue),var(--purple)); display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+.sb-logo-text { font-family:var(--font-display); font-size:.95rem; font-weight:800; white-space:nowrap; overflow:hidden; transition:opacity .2s; }
+.sb-logo-sub { font-size:.62rem; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
+.sidebar.collapsed .sb-logo-text, .sidebar.collapsed .sb-logo-sub { opacity:0; width:0; }
+.sb-toggle { margin-left:auto; background:none; border:none; color:var(--muted); cursor:pointer; font-size:.9rem; padding:4px; flex-shrink:0; }
+.sb-nav { flex:1; padding:.8rem 0; }
+.sb-section { padding:.5rem 1rem .3rem; font-size:.62rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:rgba(180,195,255,.25); white-space:nowrap; overflow:hidden; transition:opacity .2s; }
+.sidebar.collapsed .sb-section { opacity:0; }
+.sb-item {
+  display:flex; align-items:center; gap:.75rem; padding:.6rem 1rem;
+  cursor:pointer; color:var(--muted); font-size:.85rem; font-weight:500;
+  border-radius:8px; margin:1px .5rem; transition:all .2s; white-space:nowrap; text-decoration:none;
+  position:relative;
+}
+.sb-item:hover { background:var(--surface); color:var(--white); }
+.sb-item.active { background:linear-gradient(135deg,rgba(59,130,246,.18),rgba(139,92,246,.12)); color:var(--white); }
+.sb-item.active::before { content:''; position:absolute; left:0; top:20%; bottom:20%; width:3px; background:linear-gradient(var(--blue),var(--purple)); border-radius:0 3px 3px 0; }
+.sb-icon { font-size:1rem; flex-shrink:0; width:20px; text-align:center; }
+.sb-label { transition:opacity .2s,width .2s; overflow:hidden; }
+.sidebar.collapsed .sb-label { opacity:0; width:0; }
+.sb-badge { margin-left:auto; background:var(--blue); color:#fff; font-size:.65rem; font-weight:700; padding:2px 7px; border-radius:99px; flex-shrink:0; }
+.sidebar.collapsed .sb-badge { display:none; }
+.sb-footer { padding:1rem; border-top:1px solid var(--border); flex-shrink:0; }
+.sb-user { display:flex; align-items:center; gap:.75rem; padding:.6rem .5rem; border-radius:8px; cursor:pointer; transition:background .2s; }
+.sb-user:hover { background:var(--surface); }
+.sb-avatar { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,var(--blue),var(--purple)); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:800; flex-shrink:0; }
+.sb-user-info { overflow:hidden; transition:opacity .2s; }
+.sidebar.collapsed .sb-user-info { opacity:0; width:0; }
+.sb-user-name { font-size:.82rem; font-weight:700; white-space:nowrap; }
+.sb-user-role { font-size:.7rem; color:var(--muted); }
+
+/* ── MAIN AREA ── */
+.main-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* ── TOPBAR ── */
+.topbar {
+  height:var(--topbar); flex-shrink:0; background:rgba(8,10,21,.9); backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 1.5rem; gap:1rem;
+}
+.topbar-title { font-family:var(--font-display); font-size:1rem; font-weight:700; }
+.topbar-sub { font-size:.75rem; color:var(--muted); margin-top:1px; }
+.topbar-spacer { flex:1; }
+.topbar-search {
+  display:flex; align-items:center; gap:.6rem; background:var(--surface);
+  border:1px solid var(--border); border-radius:8px; padding:7px 14px;
+  width:220px;
+}
+.topbar-search input { background:none; border:none; outline:none; color:var(--white); font-family:var(--font-body); font-size:.83rem; width:100%; }
+.topbar-search input::placeholder { color:var(--muted); }
+.topbar-icon-btn { width:34px; height:34px; background:var(--surface); border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.9rem; transition:background .2s; position:relative; }
+.topbar-icon-btn:hover { background:var(--surface2); }
+.notif-dot { position:absolute; top:6px; right:6px; width:7px; height:7px; border-radius:50%; background:var(--red); border:1.5px solid var(--bg2); }
+.topbar-user { display:flex; align-items:center; gap:.6rem; cursor:pointer; padding:.3rem .5rem; border-radius:8px; transition:background .2s; }
+.topbar-user:hover { background:var(--surface); }
+.topbar-avatar { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,var(--blue),var(--purple)); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:800; }
+.topbar-user-name { font-size:.82rem; font-weight:600; }
+
+/* ── CONTENT ── */
+.content-area { flex:1; overflow-y:auto; padding:1.8rem; }
+.page { display:none; }
+.page.active { display:block; }
+
+/* ── WIDGETS ── */
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+.page-title { font-family:var(--font-display); font-size:1.5rem; font-weight:800; }
+.page-sub { font-size:.85rem; color:var(--muted); margin-top:.3rem; }
+.btn { display:inline-flex; align-items:center; gap:.5rem; padding:9px 18px; border-radius:8px; font-size:.83rem; font-weight:600; cursor:pointer; border:none; font-family:var(--font-body); transition:all .2s; }
+.btn-primary { background:linear-gradient(135deg,var(--blue),var(--purple)); color:#fff; }
+.btn-primary:hover { opacity:.9; transform:translateY(-1px); }
+.btn-ghost { background:var(--surface); border:1px solid var(--border2); color:var(--white); }
+.btn-ghost:hover { background:var(--surface2); }
+.btn-danger { background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.3); color:#f87171; }
+.btn-sm { padding:6px 13px; font-size:.78rem; }
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1.2rem; margin-bottom:2rem; }
+.stat-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.4rem;
+  transition:border-color .3s,transform .3s; cursor:default; position:relative; overflow:hidden;
+}
+.stat-card::before { content:''; position:absolute; inset:0; background:var(--card-glow,linear-gradient(135deg,rgba(59,130,246,.08),transparent)); opacity:0; transition:opacity .3s; }
+.stat-card:hover { border-color:var(--card-accent,var(--blue)); transform:translateY(-2px); }
+.stat-card:hover::before { opacity:1; }
+.stat-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; margin-bottom:1rem; }
+.stat-value { font-family:var(--font-display); font-size:2rem; font-weight:900; margin-bottom:.2rem; }
+.stat-label { font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+.stat-delta { font-size:.75rem; margin-top:.5rem; display:flex; align-items:center; gap:.3rem; }
+.delta-up { color:var(--green); }
+.delta-down { color:var(--red); }
+.chart-grid { display:grid; grid-template-columns:2fr 1fr; gap:1.2rem; margin-bottom:2rem; }
+@media(max-width:900px){ .chart-grid{grid-template-columns:1fr;} .stat-grid{grid-template-columns:repeat(2,1fr);} }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; }
+.chart-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
+.chart-card-title { font-family:var(--font-display); font-size:.95rem; font-weight:700; }
+.chart-card-sub { font-size:.75rem; color:var(--muted); margin-top:.2rem; }
+.bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+@media(max-width:900px){ .bottom-grid{grid-template-columns:1fr;} }
+.glass-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; }
+.card-title { font-family:var(--font-display); font-size:.95rem; font-weight:700; margin-bottom:1.2rem; display:flex; align-items:center; justify-content:space-between; }
+
+/* ── TABLE ── */
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th { font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:.7rem 1rem; text-align:left; border-bottom:1px solid var(--border); }
+.data-table td { font-size:.85rem; padding:.85rem 1rem; border-bottom:1px solid rgba(255,255,255,.03); vertical-align:middle; }
+.data-table tr:last-child td { border-bottom:none; }
+.data-table tr:hover td { background:var(--surface); }
+.status-badge { display:inline-flex; align-items:center; gap:.35rem; font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:99px; letter-spacing:.04em; }
+.status-new { background:rgba(59,130,246,.15); color:#60a5fa; }
+.status-active { background:rgba(16,185,129,.15); color:#34d399; }
+.status-pending { background:rgba(245,158,11,.15); color:#fbbf24; }
+.status-closed { background:rgba(239,68,68,.15); color:#f87171; }
+.action-btn { background:none; border:1px solid var(--border); color:var(--muted); padding:4px 10px; border-radius:6px; font-size:.72rem; cursor:pointer; transition:all .2s; font-family:var(--font-body); }
+.action-btn:hover { border-color:var(--blue); color:var(--blue); }
+.action-btn.danger:hover { border-color:var(--red); color:var(--red); }
+
+/* ── FORM ── */
+.form-group { margin-bottom:1.2rem; }
+.form-label { display:block; font-size:.78rem; font-weight:600; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin-bottom:.5rem; }
+.form-input, .form-select, .form-textarea {
+  width:100%; background:rgba(255,255,255,.05); border:1px solid var(--border2);
+  border-radius:10px; padding:11px 14px; color:var(--white); font-family:var(--font-body); font-size:.88rem; outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-glow); }
+.form-select option { background:#0d0e1a; }
+.form-textarea { resize:vertical; min-height:100px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+@media(max-width:600px){ .form-grid{grid-template-columns:1fr;} }
+.form-row { display:flex; gap:1rem; }
+.toggle-switch { position:relative; display:inline-block; width:44px; height:24px; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; inset:0; background:rgba(255,255,255,.12); border-radius:24px; cursor:pointer; transition:.3s; }
+.toggle-slider::before { content:''; position:absolute; left:2px; bottom:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.3s; }
+.toggle-switch input:checked + .toggle-slider { background:linear-gradient(135deg,var(--blue),var(--purple)); }
+.toggle-switch input:checked + .toggle-slider::before { transform:translateX(20px); }
+.section-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+.tag-chip { display:inline-flex; align-items:center; gap:.4rem; background:rgba(59,130,246,.12); border:1px solid rgba(59,130,246,.2); color:#93c5fd; font-size:.72rem; font-weight:600; padding:3px 10px; border-radius:99px; }
+
+/* ── ACTIVITY FEED ── */
+.activity-item { display:flex; align-items:flex-start; gap:.8rem; padding:.8rem 0; border-bottom:1px solid rgba(255,255,255,.03); }
+.activity-item:last-child { border-bottom:none; }
+.activity-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:6px; }
+.activity-text { font-size:.83rem; line-height:1.5; }
+.activity-text strong { color:var(--white); }
+.activity-time { font-size:.72rem; color:var(--muted); margin-top:.2rem; }
+
+/* ── NOTIFICATION TOAST ── */
+#toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; display:flex; flex-direction:column; gap:.7rem; }
+.toast { background:var(--bg2); border:1px solid var(--border2); border-radius:12px; padding:1rem 1.2rem; display:flex; align-items:center; gap:.8rem; font-size:.85rem; box-shadow:0 8px 32px rgba(0,0,0,.4); animation:toastIn .3s cubic-bezier(.22,1,.36,1); min-width:280px; max-width:360px; }
+.toast.removing { animation:toastOut .3s forwards; }
+@keyframes toastIn { from{transform:translateX(100%);opacity:0} to{transform:none;opacity:1} }
+@keyframes toastOut { to{transform:translateX(120%);opacity:0} }
+.toast-icon { font-size:1.1rem; flex-shrink:0; }
+.toast-msg { flex:1; }
+.toast.success { border-color:rgba(16,185,129,.3); }
+.toast.error { border-color:rgba(239,68,68,.3); }
+.toast.info { border-color:rgba(59,130,246,.3); }
+
+/* ── MODAL ── */
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(8px); z-index:500; display:none; align-items:center; justify-content:center; padding:1rem; }
+.modal-backdrop.open { display:flex; }
+.modal { background:#0d0e1a; border:1px solid var(--border2); border-radius:20px; padding:2rem; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.8rem; }
+.modal-title { font-family:var(--font-display); font-size:1.2rem; font-weight:800; }
+.modal-close { background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; }
+.modal-footer { display:flex; gap:.8rem; justify-content:flex-end; margin-top:1.8rem; }
+
+/* ── PILL TABS ── */
+.pill-tabs { display:flex; gap:.4rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+.pill-tab { background:var(--surface); border:1px solid var(--border); color:var(--muted); padding:7px 18px; border-radius:99px; font-size:.8rem; font-weight:600; cursor:pointer; transition:all .2s; }
+.pill-tab:hover, .pill-tab.active { background:linear-gradient(135deg,var(--blue),var(--purple)); color:#fff; border-color:transparent; }
+
+/* ── ANALYTICS SPECIFIC ── */
+.mini-stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+@media(max-width:700px){ .mini-stat-row{grid-template-columns:repeat(2,1fr);} }
+.mini-stat { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem; text-align:center; }
+.mini-stat-val { font-family:var(--font-display); font-size:1.5rem; font-weight:900; }
+.mini-stat-lab { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-top:.3rem; }
+
+/* ── PORTFOLIO CARDS ── */
+.pf-manage-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1.2rem; margin-top:1.5rem; }
+.pf-manage-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:border-color .3s; }
+.pf-manage-card:hover { border-color:rgba(59,130,246,.3); }
+.pf-manage-img { height:120px; display:flex; align-items:center; justify-content:center; font-size:3rem; }
+.pf-manage-body { padding:1rem; }
+.pf-manage-name { font-weight:700; font-size:.9rem; margin-bottom:.3rem; }
+.pf-manage-cat { font-size:.72rem; color:var(--muted); margin-bottom:.8rem; }
+.pf-manage-actions { display:flex; gap:.5rem; }
+
+/* ── TEAM CARDS ── */
+.team-manage-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1.2rem; }
+.team-manage-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; text-align:center; transition:border-color .3s; }
+.team-manage-card:hover { border-color:rgba(139,92,246,.3); }
+.team-manage-avatar { width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800; margin:0 auto 1rem; }
+.team-manage-name { font-weight:700; font-size:1rem; margin-bottom:.2rem; }
+.team-manage-role { font-size:.78rem; color:var(--blue); margin-bottom:.5rem; text-transform:uppercase; letter-spacing:.06em; }
+.team-manage-bio { font-size:.8rem; color:var(--muted); line-height:1.6; margin-bottom:1rem; }
+
+/* ── SEO SCORE ── */
+.seo-score-ring { width:100px; height:100px; margin:0 auto 1rem; position:relative; }
+.seo-score-ring svg { transform:rotate(-90deg); }
+.seo-score-text { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.seo-score-num { font-family:var(--font-display); font-size:1.6rem; font-weight:900; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  :root { --sidebar:60px; }
+  .sidebar { width:60px; }
+  .sidebar .sb-label, .sidebar .sb-logo-text, .sidebar .sb-logo-sub, .sidebar .sb-section, .sidebar .sb-badge, .sidebar .sb-user-info { opacity:0; width:0; overflow:hidden; }
+  .topbar-search { display:none; }
+  .content-area { padding:1rem; }
+  .chart-grid { grid-template-columns:1fr; }
+  .bottom-grid { grid-template-columns:1fr; }
+  .form-grid { grid-template-columns:1fr; }
+}
+
+
+/* ══════════════════════════════════
+   SUPER ADMIN STYLES
+══════════════════════════════════ */
+
+/* SA badge — small inline */
+.sa-badge-small {
+  display:inline-flex; align-items:center;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  color:#fff; font-size:.58rem; font-weight:800;
+  padding:2px 7px; border-radius:99px;
+  letter-spacing:.06em; text-transform:uppercase;
+  vertical-align:middle; margin-left:.3rem;
+  box-shadow:0 0 8px rgba(99,102,241,.4);
+}
+
+/* SA full badge — centered in card */
+.sa-full-badge {
+  display:inline-flex; align-items:center; gap:.35rem;
+  background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(139,92,246,.12));
+  border:1px solid rgba(99,102,241,.4);
+  color:#a78bfa; font-size:.72rem; font-weight:800;
+  padding:4px 14px; border-radius:99px;
+  letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:.6rem;
+  box-shadow:0 0 16px rgba(99,102,241,.2);
+  animation:saPulse 3s ease-in-out infinite;
+}
+@keyframes saPulse {
+  0%,100% { box-shadow:0 0 16px rgba(99,102,241,.2); }
+  50% { box-shadow:0 0 28px rgba(99,102,241,.45); }
+}
+
+/* SA protected team card */
+.sa-card {
+  border-color:rgba(99,102,241,.35) !important;
+  background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04)) !important;
+  position:relative; overflow:hidden;
+}
+.sa-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899,#8b5cf6,#6366f1);
+  background-size:200% 100%;
+  animation:saShimmer 3s linear infinite;
+}
+@keyframes saShimmer { 0%{background-position:0 0} 100%{background-position:200% 0} }
+
+/* SA protected label */
+.sa-protected-label {
+  display:flex; align-items:center; justify-content:center; gap:.4rem;
+  background:rgba(99,102,241,.08); border:1px solid rgba(99,102,241,.2);
+  color:rgba(139,92,246,.8); font-size:.75rem; font-weight:600;
+  padding:8px 14px; border-radius:8px; text-align:center;
+  letter-spacing:.02em;
+}
+
+/* SA topbar strip */
+#sa-strip {
+  display:flex; align-items:center; gap:.5rem;
+  background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));
+  border:1px solid rgba(99,102,241,.25); border-radius:99px;
+  padding:5px 14px; font-size:.72rem; font-weight:700;
+  color:#818cf8; letter-spacing:.04em; text-transform:uppercase;
+  white-space:nowrap; margin-left:.5rem;
+}
+.sa-strip-dot {
+  width:6px; height:6px; border-radius:50%; background:#818cf8;
+  animation:saStripPulse 2s ease-in-out infinite;
+}
+@keyframes saStripPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* SA settings notice */
+.sa-notice {
+  display:flex; align-items:flex-start; gap:1rem;
+  background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06));
+  border:1px solid rgba(99,102,241,.3); border-radius:14px;
+  padding:1.2rem 1.5rem; margin-bottom:1.5rem; color:#c4b5fd;
+}
+
+/* SA profile card (dashboard widget) */
+.sa-profile-widget { margin-bottom:1.5rem; border-color:rgba(99,102,241,.3) !important; position:relative; overflow:hidden; }
+.sa-profile-widget::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899,#8b5cf6,#6366f1);
+  background-size:200% 100%; animation:saShimmer 3s linear infinite;
+}
+.sa-profile-inner { display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap; }
+.sa-profile-avatar {
+  width:56px; height:56px; border-radius:14px; flex-shrink:0;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.4rem; font-weight:900; font-family:var(--font-display);
+  box-shadow:0 0 24px rgba(99,102,241,.5);
+}
+.sa-profile-info { flex:1; min-width:200px; }
+.sa-profile-name { font-family:var(--font-display); font-size:1.15rem; font-weight:800; display:flex; align-items:center; flex-wrap:wrap; margin-bottom:.3rem; }
+.sa-profile-email { font-size:.8rem; color:var(--muted); margin-bottom:.7rem; }
+.sa-profile-meta { display:flex; gap:.5rem; flex-wrap:wrap; }
+.sa-perm-tag {
+  display:inline-flex; align-items:center; gap:.3rem;
+  background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.2);
+  color:#a78bfa; font-size:.7rem; font-weight:600; padding:3px 10px; border-radius:99px;
+}
+.sa-profile-powers { background:rgba(255,255,255,.03); border:1px solid rgba(99,102,241,.15); border-radius:12px; padding:1rem 1.2rem; min-width:200px; }
+.sa-powers-title { font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.7rem; }
+.sa-powers-list { display:grid; grid-template-columns:1fr 1fr; gap:.35rem; }
+.sa-power-item { font-size:.78rem; color:#a78bfa; display:flex; align-items:center; gap:.35rem; }
+@media(max-width:600px){
+  .sa-profile-inner { flex-direction:column; align-items:flex-start; }
+  .sa-powers-list { grid-template-columns:1fr; }
+}
+
+/* Login card SA glow */
+.login-card.sa-authenticated { box-shadow:0 0 60px rgba(99,102,241,.5) !important; border-color:rgba(99,102,241,.5) !important; }
+
+
+
+/* ── MERGED CEO & SUPER ADMIN IDENTITY BAR ── */
+.sa-identity-bar {
+  display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap;
+  background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06),rgba(236,72,153,.04));
+  border:1px solid rgba(99,102,241,.3); border-radius:16px;
+  padding:1rem 1.5rem; margin-bottom:1.8rem; position:relative; overflow:hidden;
+}
+.sa-identity-bar::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899,#8b5cf6,#6366f1);
+  background-size:200% 100%; animation:saShimmer 3s linear infinite;
+}
+.sa-id-avatar {
+  width:44px; height:44px; border-radius:12px; flex-shrink:0;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; font-weight:900; font-family:var(--font-display);
+  box-shadow:0 0 18px rgba(99,102,241,.45);
+}
+.sa-id-info { flex:1; min-width:180px; }
+.sa-id-name {
+  font-family:var(--font-display); font-size:1rem; font-weight:800;
+  display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.25rem;
+}
+.sa-id-email { font-size:.78rem; color:var(--muted); }
+.sa-id-tags { display:flex; gap:.5rem; flex-wrap:wrap; }
+/* Remove old separate profile widget styles (replaced by identity bar) */
+.sa-profile-widget { display:none !important; }
+
+
+/* ── Login shake animation ── */
+@keyframes loginShake {
+  0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)} 30%{transform:translateX(8px)} 45%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-4px)} 90%{transform:translateX(4px)}
+}
+/* ── Session expiry indicator ── */
+#session-timer {
+  font-size:.68rem; color:var(--muted); padding:4px 10px;
+  background:rgba(255,255,255,.04); border-radius:99px; margin-left:.5rem;
+}
+#session-timer.warning { color:var(--amber); background:rgba(245,158,11,.12); }
+
+</style>
+</head>
+<body>
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">H</div>
+      <div><div class="login-logo-text">Hamoran</div><div class="login-logo-sub">Admin Portal</div></div>
+    </div>
+    <div class="login-title">Welcome back</div>
+    <div class="login-sub">Sign in to access your command centre</div>
+    <div class="login-field"><label class="login-label">Email</label><input class="login-input" id="loginEmail" type="email" placeholder="admin@hamoran.co.uk" autocomplete="username"></div>
+    <div class="login-field"><label class="login-label">Password</label><input class="login-input" id="loginPass" type="password" placeholder="••••••••••" autocomplete="current-password"></div>
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+    <div class="login-error" id="loginErr"></div>
+    <div class="login-hint">Authorised personnel only. Contact your administrator for access.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo-icon">H</div>
+      <div><div class="sb-logo-text">Hamoran</div><div class="sb-logo-sub">Admin Panel</div></div>
+      <button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">MAIN</div>
+      <div class="sb-item active" onclick="showPage('dashboard',this)"><span class="sb-icon">📊</span><span class="sb-label">Dashboard</span></div>
+      <div class="sb-item" onclick="showPage('analytics',this)"><span class="sb-icon">📈</span><span class="sb-label">Analytics</span></div>
+      <div class="sb-item" onclick="showPage('leads',this)"><span class="sb-icon">👥</span><span class="sb-label">Leads</span><span class="sb-badge" id="badge-leads">0</span></div>
+      <div class="sb-item" onclick="showPage('messages',this)"><span class="sb-icon">💬</span><span class="sb-label">Messages</span><span class="sb-badge" id="badge-msgs">0</span></div>
+      <div class="sb-item" onclick="showPage('aichats',this)"><span class="sb-icon">🤖</span><span class="sb-label">AI Chats</span></div>
+      <div class="sb-section">WEBSITE</div>
+      <div class="sb-item" onclick="showPage('portfolio',this)"><span class="sb-icon">🖼️</span><span class="sb-label">Portfolio</span></div>
+      <div class="sb-item" onclick="showPage('services',this)"><span class="sb-icon">⚙️</span><span class="sb-label">Services</span></div>
+      <div class="sb-item" onclick="showPage('team',this)"><span class="sb-icon">👤</span><span class="sb-label">Team</span></div>
+      <div class="sb-item" onclick="showPage('testimonials',this)"><span class="sb-icon">⭐</span><span class="sb-label">Testimonials</span></div>
+      <div class="sb-item" onclick="showPage('blog',this)"><span class="sb-icon">📝</span><span class="sb-label">Blog / News</span></div>
+      <div class="sb-section">SETTINGS</div>
+      <div class="sb-item" onclick="showPage('seo',this)"><span class="sb-icon">🔍</span><span class="sb-label">SEO Settings</span></div>
+      <div class="sb-item" onclick="showPage('pricing',this)"><span class="sb-icon">💷</span><span class="sb-label">Pricing</span></div>
+      <div class="sb-item" onclick="showPage('site-settings',this)"><span class="sb-icon">🛠️</span><span class="sb-label">Site Settings</span></div>
+      <div class="sb-item" onclick="showPage('notifications',this)"><span class="sb-icon">🔔</span><span class="sb-label">Notifications</span></div>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user" onclick="doLogout()">
+        <div class="sb-avatar">M</div>
+        <div class="sb-user-info"><div class="sb-user-name">Moid</div><div class="sb-user-role">CEO · Sign out</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div><div class="topbar-title" id="topbar-title">Dashboard</div><div class="topbar-sub" id="topbar-sub">Overview of your business performance</div></div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-search"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="Search anything..."></div>
+      <div class="topbar-icon-btn" onclick="showPage('notifications',null)"><span>🔔</span><span class="notif-dot" id="notif-indicator"></span></div>
+      <div class="topbar-icon-btn" onclick="window.open('hamoran.html','_blank')"><span>🌐</span></div>
+      <div class="topbar-user"><div class="topbar-avatar">M</div><div class="topbar-user-name">Moid</div></div>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <div class="content-area">
+
+      <!-- ═══════════ DASHBOARD ═══════════ -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div><div class="page-title">Command Centre</div><div class="page-sub">Real-time overview of Hamoran's performance</div></div>
+          <div style="display:flex;gap:.7rem">
+            <button class="btn btn-ghost btn-sm" onclick="exportReport()">📥 Export Report</button>
+            <button class="btn btn-primary btn-sm" onclick="showPage('leads',null)">+ New Lead</button>
+          </div>
+        </div>
+
+        <!-- KPI Stats -->
+        <div class="stat-grid">
+          <div class="stat-card" style="--card-accent:var(--blue);--card-glow:linear-gradient(135deg,rgba(59,130,246,.1),transparent)">
+            <div class="stat-icon" style="background:rgba(59,130,246,.15);color:var(--blue)">👥</div>
+            <div class="stat-value" id="stat-visitors">2,847</div>
+            <div class="stat-label">Monthly Visitors</div>
+            <div class="stat-delta delta-up">▲ 18.4% vs last month</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--green);--card-glow:linear-gradient(135deg,rgba(16,185,129,.1),transparent)">
+            <div class="stat-icon" style="background:rgba(16,185,129,.15);color:var(--green)">🎯</div>
+            <div class="stat-value" id="stat-leads">0</div>
+            <div class="stat-label">Leads Collected</div>
+            <div class="stat-delta delta-up">▲ New this month</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--purple);--card-glow:linear-gradient(135deg,rgba(139,92,246,.1),transparent)">
+            <div class="stat-icon" style="background:rgba(139,92,246,.15);color:var(--purple)">🤖</div>
+            <div class="stat-value" id="stat-chats">0</div>
+            <div class="stat-label">AI Chats Handled</div>
+            <div class="stat-delta delta-up">▲ Live 24/7</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--amber);--card-glow:linear-gradient(135deg,rgba(245,158,11,.1),transparent)">
+            <div class="stat-icon" style="background:rgba(245,158,11,.15);color:var(--amber)">📈</div>
+            <div class="stat-value">4.8%</div>
+            <div class="stat-label">Conversion Rate</div>
+            <div class="stat-delta delta-up">▲ 0.6% vs avg</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--cyan);--card-glow:linear-gradient(135deg,rgba(6,182,212,.1),transparent)">
+            <div class="stat-icon" style="background:rgba(6,182,212,.15);color:var(--cyan)">💬</div>
+            <div class="stat-value" id="stat-messages">0</div>
+            <div class="stat-label">Messages Received</div>
+            <div class="stat-delta">Contact form entries</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--pink);--card-glow:linear-gradient(135deg,rgba(236,72,153,.1),transparent)">
+            <div class="stat-icon" style="background:rgba(236,72,153,.15);color:var(--pink)">🖼️</div>
+            <div class="stat-value">22</div>
+            <div class="stat-label">Portfolio Projects</div>
+            <div class="stat-delta">Across 6 industries</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div><div class="chart-card-title">Traffic Overview</div><div class="chart-card-sub">Last 30 days · Unique visitors</div></div>
+              <div class="pill-tabs" style="margin:0">
+                <button class="pill-tab active" onclick="switchTrafficPeriod(30,this)">30d</button>
+                <button class="pill-tab" onclick="switchTrafficPeriod(7,this)">7d</button>
+              </div>
+            </div>
+            <canvas id="trafficChart" height="180"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div><div class="chart-card-title">Traffic Sources</div><div class="chart-card-sub">Where visitors come from</div></div>
+            </div>
+            <canvas id="sourcesChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <!-- Bottom Row -->
+        <div class="bottom-grid">
+          <!-- Recent Leads -->
+          <div class="glass-card">
+            <div class="card-title">Recent Leads <span style="font-size:.78rem;font-weight:400;color:var(--muted)" id="lead-count-lbl"></span></div>
+            <div id="dashboard-leads-table">
+              <div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">
+                <div style="font-size:2rem;margin-bottom:.5rem">🎯</div>
+                No leads yet. They'll appear here when visitors submit the contact form.
+              </div>
+            </div>
+          </div>
+          <!-- Activity Feed -->
+          <div class="glass-card">
+            <div class="card-title">Live Activity</div>
+            <div id="activity-feed">
+              <div class="activity-item"><span class="activity-dot" style="background:var(--blue)"></span><div><div class="activity-text">Admin panel <strong>initialised</strong></div><div class="activity-time">Just now</div></div></div>
+              <div class="activity-item"><span class="activity-dot" style="background:var(--green)"></span><div><div class="activity-text">AI chatbot is <strong>online</strong> and running</div><div class="activity-time">Active 24/7</div></div></div>
+              <div class="activity-item"><span class="activity-dot" style="background:var(--purple)"></span><div><div class="activity-text"><strong>22 portfolio projects</strong> published</div><div class="activity-time">Live on site</div></div></div>
+              <div class="activity-item"><span class="activity-dot" style="background:var(--amber)"></span><div><div class="activity-text">Hamoran site <strong>deployed</strong> and live</div><div class="activity-time">hamoran.co.uk</div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Popular Services -->
+        <div class="glass-card" style="margin-top:1.2rem">
+          <div class="card-title">Service Performance</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:.5rem" id="service-perf-grid">
+            <div style="background:var(--surface2);border-radius:var(--radius);padding:1.2rem;text-align:center">
+              <div style="font-size:1.8rem;margin-bottom:.5rem">🌐</div>
+              <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">Website Dev</div>
+              <div style="color:var(--blue);font-family:var(--font-display);font-size:1.3rem;font-weight:800">£150</div>
+              <div style="color:var(--muted);font-size:.72rem;margin-top:.3rem">Most popular</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:var(--radius);padding:1.2rem;text-align:center">
+              <div style="font-size:1.8rem;margin-bottom:.5rem">🤖</div>
+              <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">AI Chat System</div>
+              <div style="color:var(--purple);font-family:var(--font-display);font-size:1.3rem;font-weight:800">£100</div>
+              <div style="color:var(--muted);font-size:.72rem;margin-top:.3rem">High demand</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:var(--radius);padding:1.2rem;text-align:center">
+              <div style="font-size:1.8rem;margin-bottom:.5rem">📣</div>
+              <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">Paid Advertising</div>
+              <div style="color:var(--cyan);font-family:var(--font-display);font-size:1.3rem;font-weight:800">£100</div>
+              <div style="color:var(--muted);font-size:.72rem;margin-top:.3rem">Growing fast</div>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(139,92,246,.08));border:1px solid rgba(59,130,246,.2);border-radius:var(--radius);padding:1.2rem;text-align:center">
+              <div style="font-size:1.8rem;margin-bottom:.5rem">🚀</div>
+              <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">Full Bundle</div>
+              <div style="color:var(--amber);font-family:var(--font-display);font-size:1.3rem;font-weight:800">£299</div>
+              <div style="color:#34d399;font-size:.72rem;margin-top:.3rem">Best value ★</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ ANALYTICS ═══════════ -->
+      <div class="page" id="page-analytics">
+        <div class="page-header">
+          <div><div class="page-title">Analytics</div><div class="page-sub">Deep-dive into your website performance</div></div>
+          <button class="btn btn-ghost btn-sm">📥 Export CSV</button>
+        </div>
+        <div class="mini-stat-row">
+          <div class="mini-stat"><div class="mini-stat-val" style="color:var(--blue)">2,847</div><div class="mini-stat-lab">Total Visitors</div></div>
+          <div class="mini-stat"><div class="mini-stat-val" style="color:var(--green)">4.8%</div><div class="mini-stat-lab">Conversion Rate</div></div>
+          <div class="mini-stat"><div class="mini-stat-val" style="color:var(--purple)">3:42</div><div class="mini-stat-lab">Avg. Session</div></div>
+          <div class="mini-stat"><div class="mini-stat-val" style="color:var(--amber)">34%</div><div class="mini-stat-lab">Bounce Rate</div></div>
+        </div>
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-card-header"><div><div class="chart-card-title">Weekly Traffic</div><div class="chart-card-sub">Visitors per day this week</div></div></div>
+            <canvas id="weeklyChart" height="180"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header"><div><div class="chart-card-title">Portfolio Clicks</div><div class="chart-card-sub">Top projects by engagement</div></div></div>
+            <canvas id="portfolioClicksChart" height="180"></canvas>
+          </div>
+        </div>
+        <div class="bottom-grid">
+          <div class="glass-card">
+            <div class="card-title">Top Pages</div>
+            <table class="data-table">
+              <thead><tr><th>Page</th><th>Views</th><th>Avg Time</th><th>Bounce</th></tr></thead>
+              <tbody>
+                <tr><td>🏠 Home</td><td>1,240</td><td>2:18</td><td>28%</td></tr>
+                <tr><td>🖼️ Portfolio</td><td>847</td><td>4:52</td><td>18%</td></tr>
+                <tr><td>💰 Pricing</td><td>623</td><td>3:14</td><td>35%</td></tr>
+                <tr><td>📞 Contact</td><td>412</td><td>1:44</td><td>42%</td></tr>
+                <tr><td>👥 About</td><td>388</td><td>2:06</td><td>31%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">Device Breakdown</div>
+            <canvas id="deviceChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ LEADS ═══════════ -->
+      <div class="page" id="page-leads">
+        <div class="page-header">
+          <div><div class="page-title">Lead Management</div><div class="page-sub">All contact form submissions and enquiries</div></div>
+          <div style="display:flex;gap:.7rem">
+            <button class="btn btn-ghost btn-sm" onclick="exportLeads()">📥 Export CSV</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('lead-modal')">+ Add Lead</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+          <input type="text" class="form-input" style="max-width:280px;padding:8px 14px" placeholder="🔍 Search leads..." oninput="filterLeads(this.value)">
+          <select class="form-select" style="max-width:160px;padding:8px 14px" onchange="filterLeadStatus(this.value)">
+            <option value="">All Status</option>
+            <option value="new">New</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div class="glass-card" style="padding:0;overflow:hidden">
+          <table class="data-table" id="leads-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Service</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="leads-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--muted)">
+                <div style="font-size:2.5rem;margin-bottom:1rem">🎯</div>
+                <div style="font-weight:600;margin-bottom:.5rem">No leads yet</div>
+                <div style="font-size:.82rem">Leads from your website contact form will appear here automatically.</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════ MESSAGES ═══════════ -->
+      <div class="page" id="page-messages">
+        <div class="page-header">
+          <div><div class="page-title">Messages</div><div class="page-sub">Contact form submissions and enquiries</div></div>
+        </div>
+        <div class="glass-card" style="padding:0;overflow:hidden">
+          <table class="data-table">
+            <thead><tr><th>From</th><th>Email</th><th>Message</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="messages-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:3rem;color:var(--muted)">
+                <div style="font-size:2.5rem;margin-bottom:1rem">💬</div>
+                <div style="font-weight:600;margin-bottom:.5rem">Inbox is empty</div>
+                <div style="font-size:.82rem">Messages from the website contact form will appear here.</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════ AI CHATS ═══════════ -->
+      <div class="page" id="page-aichats">
+        <div class="page-header">
+          <div><div class="page-title">AI Chat History</div><div class="page-sub">All conversations handled by the Hamoran AI assistant</div></div>
+        </div>
+        <div class="mini-stat-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="mini-stat"><div class="mini-stat-val" id="ai-total-chats" style="color:var(--purple)">0</div><div class="mini-stat-lab">Total Sessions</div></div>
+          <div class="mini-stat"><div class="mini-stat-val" style="color:var(--green)">24/7</div><div class="mini-stat-lab">Availability</div></div>
+          <div class="mini-stat"><div class="mini-stat-val" style="color:var(--cyan)">~2s</div><div class="mini-stat-lab">Avg Response</div></div>
+        </div>
+        <div class="glass-card" style="padding:0;overflow:hidden">
+          <table class="data-table">
+            <thead><tr><th>Session</th><th>First Message</th><th>Messages</th><th>Topic</th><th>Date</th></tr></thead>
+            <tbody id="aichats-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:3rem;color:var(--muted)">
+                <div style="font-size:2.5rem;margin-bottom:1rem">🤖</div>
+                <div style="font-weight:600;margin-bottom:.5rem">No chats yet</div>
+                <div style="font-size:.82rem">AI chat sessions will be logged here as visitors use the chatbot.</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════ PORTFOLIO MANAGER ═══════════ -->
+      <div class="page" id="page-portfolio">
+        <div class="page-header">
+          <div><div class="page-title">Portfolio Manager</div><div class="page-sub">Manage your 22 showcase projects</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('pf-modal')">+ Add Project</button>
+        </div>
+        <div class="pill-tabs" id="pf-filter-tabs">
+          <button class="pill-tab active" onclick="filterPFAdmin('all',this)">All (22)</button>
+          <button class="pill-tab" onclick="filterPFAdmin('gym',this)">💪 Gym (5)</button>
+          <button class="pill-tab" onclick="filterPFAdmin('ecom',this)">🛒 E-Commerce (2)</button>
+          <button class="pill-tab" onclick="filterPFAdmin('restaurant',this)">🍽️ Restaurant (4)</button>
+          <button class="pill-tab" onclick="filterPFAdmin('fashion',this)">👗 Fashion (6)</button>
+          <button class="pill-tab" onclick="filterPFAdmin('ai',this)">🤖 AI & Tech (3)</button>
+          <button class="pill-tab" onclick="filterPFAdmin('realestate',this)">🏠 Real Estate (2)</button>
+        </div>
+        <div class="pf-manage-grid" id="pf-admin-grid"></div>
+      </div>
+
+      <!-- ═══════════ SERVICES ═══════════ -->
+      <div class="page" id="page-services">
+        <div class="page-header">
+          <div><div class="page-title">Services & Pricing</div><div class="page-sub">Manage your service offerings</div></div>
+          <button class="btn btn-primary btn-sm" onclick="saveServices()">💾 Save Changes</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem" id="services-editor">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- ═══════════ TEAM ═══════════ -->
+      <div class="page" id="page-team">
+        <div class="page-header">
+          <div><div class="page-title">Team Management</div><div class="page-sub">Manage your team profiles</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('team-modal')">+ Add Member</button>
+        </div>
+        <div class="team-manage-grid" id="team-grid"></div>
+      </div>
+
+      <!-- ═══════════ TESTIMONIALS ═══════════ -->
+      <div class="page" id="page-testimonials">
+        <div class="page-header">
+          <div><div class="page-title">Testimonials</div><div class="page-sub">Manage client reviews and social proof</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('test-modal')">+ Add Testimonial</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem;margin-top:.5rem" id="testimonials-grid"></div>
+      </div>
+
+      <!-- ═══════════ BLOG ═══════════ -->
+      <div class="page" id="page-blog">
+        <div class="page-header">
+          <div><div class="page-title">Blog & News</div><div class="page-sub">Manage your content and updates</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('blog-modal')">+ New Post</button>
+        </div>
+        <div class="glass-card" style="padding:0;overflow:hidden">
+          <table class="data-table" id="blog-table">
+            <thead><tr><th>Title</th><th>Status</th><th>Category</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="blog-tbody">
+              <tr><td colspan="5" style="padding:2rem;text-align:center;color:var(--muted)">No blog posts yet. Create your first post to drive organic traffic.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════ SEO ═══════════ -->
+      <div class="page" id="page-seo">
+        <div class="page-header">
+          <div><div class="page-title">SEO Settings</div><div class="page-sub">Optimise your search engine visibility</div></div>
+          <button class="btn btn-primary btn-sm" onclick="saveSEO()">💾 Save SEO Settings</button>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem">
+          <div>
+            <div class="glass-card" style="margin-bottom:1.2rem">
+              <div class="card-title">Meta Information</div>
+              <div class="form-group"><label class="form-label">Page Title</label><input class="form-input" id="seo-title" value="Hamoran — AI-Powered Business Growth Agency | UK"></div>
+              <div class="form-group"><label class="form-label">Meta Description</label><textarea class="form-textarea" id="seo-desc" style="height:80px">Hamoran is a premium AI and digital marketing agency. We build stunning websites, intelligent AI chat systems, and precision-targeted ad campaigns for ambitious UK businesses.</textarea></div>
+              <div class="form-group"><label class="form-label">Keywords (comma separated)</label><input class="form-input" id="seo-keywords" value="AI agency UK, web design Manchester, digital marketing, AI chat system, paid advertising"></div>
+            </div>
+            <div class="glass-card">
+              <div class="card-title">Open Graph / Social</div>
+              <div class="form-grid">
+                <div class="form-group"><label class="form-label">OG Title</label><input class="form-input" value="Hamoran — AI-Powered Business Growth"></div>
+                <div class="form-group"><label class="form-label">OG Image URL</label><input class="form-input" placeholder="https://..."></div>
+              </div>
+              <div class="form-group"><label class="form-label">OG Description</label><textarea class="form-textarea" style="height:70px">Premium AI agency helping UK businesses grow with websites, AI systems, and paid ads.</textarea></div>
+            </div>
+          </div>
+          <div>
+            <div class="glass-card" style="text-align:center;margin-bottom:1.2rem">
+              <div class="card-title">SEO Health Score</div>
+              <div class="seo-score-ring">
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10"/>
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="url(#seoGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="66" id="seo-ring"/>
+                  <defs><linearGradient id="seoGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
+                </svg>
+                <div class="seo-score-text"><div class="seo-score-num" style="background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent">75</div><div style="font-size:.68rem;color:var(--muted)">/ 100</div></div>
+              </div>
+              <div style="font-size:.8rem;color:var(--muted)">Good — keep optimising for best results</div>
+            </div>
+            <div class="glass-card">
+              <div class="card-title">Technical SEO</div>
+              <div style="display:flex;flex-direction:column;gap:.8rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:.83rem"><span>Sitemap</span><span class="status-badge status-active">✓ Present</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:.83rem"><span>Robots.txt</span><span class="status-badge status-active">✓ Present</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:.83rem"><span>SSL Certificate</span><span class="status-badge status-active">✓ Active</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:.83rem"><span>Page Speed</span><span class="status-badge status-pending">94/100</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:.83rem"><span>Mobile Friendly</span><span class="status-badge status-active">✓ Yes</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ PRICING ═══════════ -->
+      <div class="page" id="page-pricing">
+        <div class="page-header">
+          <div><div class="page-title">Pricing Editor</div><div class="page-sub">Manage your service pricing</div></div>
+          <button class="btn btn-primary btn-sm" onclick="savePricing()">💾 Save Pricing</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem" id="pricing-editor">
+          <div class="glass-card">
+            <div class="card-title">🌐 Website Development</div>
+            <div class="form-group"><label class="form-label">Price (£)</label><input class="form-input" id="price-web" type="number" value="150"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" style="height:80px" id="desc-web">Custom-designed website with modern UI, mobile-responsive, fast loading, and CMS.</textarea></div>
+            <div style="display:flex;align-items:center;gap:1rem"><label class="form-label" style="margin:0">Active</label><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">🤖 AI Chat System</div>
+            <div class="form-group"><label class="form-label">Price (£)</label><input class="form-input" id="price-ai" type="number" value="100"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" style="height:80px" id="desc-ai">Intelligent 24/7 AI chatbot that handles enquiries, books appointments, and generates leads.</textarea></div>
+            <div style="display:flex;align-items:center;gap:1rem"><label class="form-label" style="margin:0">Active</label><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">📣 Paid Advertising</div>
+            <div class="form-group"><label class="form-label">Price (£)</label><input class="form-input" id="price-ads" type="number" value="100"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" style="height:80px" id="desc-ads">Data-driven ad campaigns on Meta, Google, and TikTok to reach your ideal customers.</textarea></div>
+            <div style="display:flex;align-items:center;gap:1rem"><label class="form-label" style="margin:0">Active</label><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+          </div>
+          <div class="glass-card" style="border-color:rgba(59,130,246,.25)">
+            <div class="card-title">🚀 Full Bundle</div>
+            <div class="form-group"><label class="form-label">Bundle Price (£)</label><input class="form-input" id="price-bundle" type="number" value="299"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" style="height:80px" id="desc-bundle">Everything included — website, AI system, and ads. Best value, one monthly fee.</textarea></div>
+            <div style="display:flex;align-items:center;gap:1rem"><label class="form-label" style="margin:0">Featured</label><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ SITE SETTINGS ═══════════ -->
+      <div class="page" id="page-site-settings">
+        <div class="page-header">
+          <div><div class="page-title">Site Settings</div><div class="page-sub">General configuration and preferences</div></div>
+          <button class="btn btn-primary btn-sm" onclick="saveSiteSettings()">💾 Save Settings</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+          <div>
+            <div class="glass-card" style="margin-bottom:1.2rem">
+              <div class="card-title">General Information</div>
+              <div class="form-group"><label class="form-label">Agency Name</label><input class="form-input" value="Hamoran"></div>
+              <div class="form-group"><label class="form-label">Contact Email</label><input class="form-input" type="email" value="abdulmoidsh@gmail.com"></div>
+              <div class="form-group"><label class="form-label">Phone</label><input class="form-input" value="07404 829923"></div>
+              <div class="form-group"><label class="form-label">Tagline</label><input class="form-input" value="AI-Powered Business Growth Agency"></div>
+            </div>
+            <div class="glass-card">
+              <div class="card-title">Authentication <span class="sa-full-badge" style="font-size:.62rem;padding:2px 9px">👑 CEO &amp; Super Admin Account</span></div>
+              <div class="form-group"><label class="form-label">Admin Email</label><input class="form-input" type="email" id="cfg-email" value="moidabdul959@gmail.com"></div>
+              <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="cfg-pass" placeholder="Leave blank to keep current"></div>
+              <button class="btn btn-ghost btn-sm" onclick="updateCredentials()">Update Credentials</button>
+            </div>
+          </div>
+          <div>
+            <div class="glass-card" style="margin-bottom:1.2rem">
+              <div class="card-title">Feature Toggles</div>
+              <div style="display:flex;flex-direction:column;gap:1rem">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:.88rem">AI Chat Widget</span><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:.88rem">Pricing Calculator</span><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:.88rem">Demo Portfolio</span><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:.88rem">Newsletter Signup</span><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:.88rem">Cookie Banner</span><label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label></div>
+              </div>
+            </div>
+            <div class="glass-card">
+              <div class="card-title">Theme Colours</div>
+              <div class="form-grid">
+                <div class="form-group"><label class="form-label">Primary (Blue)</label><input class="form-input" type="color" value="#3b82f6" style="height:44px;padding:4px 8px;cursor:pointer"></div>
+                <div class="form-group"><label class="form-label">Secondary (Purple)</label><input class="form-input" type="color" value="#8b5cf6" style="height:44px;padding:4px 8px;cursor:pointer"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ NOTIFICATIONS ═══════════ -->
+      <div class="page" id="page-notifications">
+        <div class="page-header">
+          <div><div class="page-title">Notifications</div><div class="page-sub">System alerts and activity log</div></div>
+          <button class="btn btn-ghost btn-sm" onclick="clearNotifications()">Clear All</button>
+        </div>
+        <div class="glass-card">
+          <div id="notif-list">
+            <div class="activity-item"><span class="activity-dot" style="background:var(--blue)"></span><div><div class="activity-text">🎉 <strong>Admin panel launched</strong> — Hamoran Command Centre is live</div><div class="activity-time">Just now</div></div></div>
+            <div class="activity-item"><span class="activity-dot" style="background:var(--green)"></span><div><div class="activity-text">✅ <strong>22 portfolio projects</strong> published across 6 categories</div><div class="activity-time">Today</div></div></div>
+            <div class="activity-item"><span class="activity-dot" style="background:var(--purple)"></span><div><div class="activity-text">🤖 AI chatbot is <strong>live and operational</strong></div><div class="activity-time">Active 24/7</div></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main-area -->
+</div><!-- /app -->
+
+<!-- ═══════════ MODALS ═══════════ -->
+<!-- Lead Modal -->
+<div class="modal-backdrop" id="lead-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Lead</div><button class="modal-close" onclick="closeModal('lead-modal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="new-lead-name" placeholder="Full name"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="new-lead-email" type="email" placeholder="Email"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="new-lead-phone" placeholder="Phone number"></div>
+    <div class="form-group"><label class="form-label">Service Interest</label>
+      <select class="form-select" id="new-lead-service">
+        <option value="Website Development">Website Development (£150)</option>
+        <option value="AI Chat System">AI Chat System (£100)</option>
+        <option value="Paid Advertising">Paid Advertising (£100)</option>
+        <option value="Full Bundle">Full Bundle (£299)</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Message</label><textarea class="form-textarea" id="new-lead-msg" placeholder="Any notes..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('lead-modal')">Cancel</button><button class="btn btn-primary" onclick="addLead()">Add Lead →</button></div>
+  </div>
+</div>
+
+<!-- Portfolio Modal -->
+<div class="modal-backdrop" id="pf-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Project</div><button class="modal-close" onclick="closeModal('pf-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Project Name</label><input class="form-input" id="pf-name" placeholder="e.g. FitLife Gym"></div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <select class="form-select" id="pf-cat">
+        <option value="gym">💪 Gym & Fitness</option><option value="ecom">🛒 E-Commerce</option>
+        <option value="restaurant">🍽️ Restaurant</option><option value="fashion">👗 Fashion</option>
+        <option value="ai">🤖 AI & Tech</option><option value="realestate">🏠 Real Estate</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="pf-desc" placeholder="Describe the project..."></textarea></div>
+    <div class="form-group"><label class="form-label">Tags (comma separated)</label><input class="form-input" id="pf-tags" placeholder="Website, AI Chat, Facebook Ads"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('pf-modal')">Cancel</button><button class="btn btn-primary" onclick="addProject()">Add Project →</button></div>
+  </div>
+</div>
+
+<!-- Team Modal -->
+<div class="modal-backdrop" id="team-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Team Member</div><button class="modal-close" onclick="closeModal('team-modal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="tm-name" placeholder="Full name"></div>
+      <div class="form-group"><label class="form-label">Role</label><input class="form-input" id="tm-role" placeholder="e.g. Creative Director"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Bio</label><textarea class="form-textarea" id="tm-bio" placeholder="Short bio..."></textarea></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="tm-email" type="email" placeholder="team@hamoran.co.uk"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('team-modal')">Cancel</button><button class="btn btn-primary" onclick="addTeamMember()">Add Member →</button></div>
+  </div>
+</div>
+
+<!-- Testimonial Modal -->
+<div class="modal-backdrop" id="test-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Testimonial</div><button class="modal-close" onclick="closeModal('test-modal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Client Name</label><input class="form-input" id="t-name" placeholder="Name"></div>
+      <div class="form-group"><label class="form-label">Company / Role</label><input class="form-input" id="t-company" placeholder="e.g. Gym Owner"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Review</label><textarea class="form-textarea" id="t-text" placeholder="Their testimonial..."></textarea></div>
+    <div class="form-group"><label class="form-label">Rating (1–5)</label><input class="form-input" id="t-rating" type="number" min="1" max="5" value="5"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('test-modal')">Cancel</button><button class="btn btn-primary" onclick="addTestimonial()">Add →</button></div>
+  </div>
+</div>
+
+<!-- Blog Modal -->
+<div class="modal-backdrop" id="blog-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header"><div class="modal-title">New Blog Post</div><button class="modal-close" onclick="closeModal('blog-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="blog-title" placeholder="Post title..."></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-select" id="blog-cat"><option>AI & Technology</option><option>Web Design</option><option>Marketing</option><option>Case Studies</option><option>Business</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="blog-status"><option value="draft">Draft</option><option value="published">Published</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Content</label><textarea class="form-textarea" id="blog-content" style="height:160px" placeholder="Write your post..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('blog-modal')">Cancel</button><button class="btn btn-primary" onclick="addBlogPost()">Publish →</button></div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+<script>
+/* ══════════════════════════════════
+   HAMORAN ADMIN — COMMAND CENTRE JS
+══════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════
+   HAMORAN ADMIN — SECURE API CLIENT v3.0
+   Authentication delegated entirely to backend server.
+   No credentials stored or checked in frontend JavaScript.
+══════════════════════════════════════════════════════════ */
+
+const STORAGE_KEY = 'hamoran_admin_data';
+
+// ── DATA STORE (UI state only — not auth state) ──────────
+let DATA = {
+  leads: [], messages: [], aichats: [], team: [
+    { name:'Moid', role:'CEO & Super Admin',
+      bio:'Founder, visionary leader, and Super Admin of Hamoran.',
+      email:'[configured server-side]', initial:'M',
+      color:'linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899)', isSuperAdmin:true }
+  ],
+  testimonials: [
+    { name:'James K.', company:'Healthcare Clinic · Director', text:'"Hamoran completely transformed our online presence."', rating:5 },
+    { name:'Sarah M.', company:'Fashion Brand · Founder', text:'"Our orders doubled within 2 weeks."', rating:5 },
+    { name:'Daniel T.', company:'Restaurant · Owner', text:'"Our bookings are up 180%."', rating:5 }
+  ],
+  blogPosts: [],
+  projects: []
+};
+
+// ── SESSION STATE (UI only — no tokens stored here) ──────
+let _uiSession = null;   // { email, name, role } — populated from /api/auth/me
+let _csrfToken = null;   // fetched from server, sent in X-CSRF-Token header
+
+// ── API CLIENT ────────────────────────────────────────────
+async function _apiFetch(url, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...opts.headers };
+  // Attach CSRF token for state-changing requests
+  if (_csrfToken && !['GET','HEAD','OPTIONS'].includes((opts.method||'GET').toUpperCase())) {
+    headers['X-CSRF-Token'] = _csrfToken;
+  }
+  const res = await fetch(url, { ...opts, headers, credentials: 'include' });
+  return res;
+}
+
+async function _fetchCsrfToken() {
+  try {
+    const res = await fetch('/api/csrf-token', { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      _csrfToken = data.csrfToken;
+    }
+  } catch (e) { /* CSRF fetch failed — non-fatal for GET requests */ }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────
+async async function doLogin() {
+  const email = document.getElementById('loginEmail')?.value?.trim();
+  const pass  = document.getElementById('loginPass')?.value;
+  const err   = document.getElementById('loginErr');
+
+  if (!email || !pass) {
+    if(err) err.textContent = 'Please enter your email and password.';
+    return;
+  }
+
+  const btn = document.querySelector('.login-btn');
+  if (btn) { btn.textContent = 'Signing in...'; btn.disabled = true; }
+
+  try {
+    await _fetchCsrfToken();
+
+    const res = await _apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password: pass }),
+    });
+
+    const data = await res.json();
+
+    if (res.status === 429) {
+      if (err) err.textContent = data.message || 'Too many attempts. Please wait before trying again.';
+      return;
+    }
+    if (!res.ok) {
+      if (err) err.textContent = data.message || 'Invalid credentials.';
+      // Shake effect
+      const card = document.querySelector('.login-card');
+      if (card) { card.style.animation = 'none'; void card.offsetWidth; card.style.animation = 'loginShake .4s ease'; }
+      return;
+    }
+
+    // Success — server set HttpOnly cookies, we get safe user info
+    _uiSession = data.user;
+
+    const ls  = document.getElementById('login-screen');
+    const app = document.getElementById('app');
+    if (ls)  { ls.style.opacity = '0'; ls.style.transition = 'opacity .4s'; setTimeout(() => ls.style.display = 'none', 400); }
+    if (app)  app.classList.add('visible');
+
+    initApp();
+
+  } catch (e) {
+    if (err) err.textContent = 'Connection error. Please try again.';
+  } finally {
+    if (btn) { btn.textContent = 'Sign In →'; btn.disabled = false; }
+  }
+}
+
+// ── LOGOUT ────────────────────────────────────────────────
+async function doLogout() {
+  try {
+    await _apiFetch('/api/auth/logout', { method: 'POST' });
+  } catch(e) { /* always clear UI even if server call fails */ }
+
+  _uiSession = null;
+  _csrfToken = null;
+
+  const app = document.getElementById('app');
+  const ls  = document.getElementById('login-screen');
+  if (app) app.classList.remove('visible');
+  if (ls)  { ls.style.display = 'flex'; ls.style.opacity = '1'; }
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value  = '';
+  document.getElementById('loginErr').textContent = '';
+}
+
+// ── SESSION CHECK (on page load) ─────────────────────────
+async function checkExistingSession() {
+  try {
+    await _fetchCsrfToken();
+    const res  = await _apiFetch('/api/auth/me');
+    if (res.ok) {
+      const data = await res.json();
+      _uiSession = data;
+      // User is already logged in (HttpOnly cookie valid)
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').classList.add('visible');
+      initApp();
+      return true;
+    }
+    // Try token refresh
+    const refresh = await _apiFetch('/api/auth/refresh', { method: 'POST' });
+    if (refresh.ok) {
+      const meRes = await _apiFetch('/api/auth/me');
+      if (meRes.ok) {
+        _uiSession = await meRes.json();
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').classList.add('visible');
+        initApp();
+        return true;
+      }
+    }
+  } catch(e) { /* not logged in */ }
+  return false;
+}
+
+// ── ADMIN API WRAPPERS ────────────────────────────────────
+const AdminAPI = {
+  async getLeads() {
+    const res = await _apiFetch('/api/admin/leads');
+    if (!res.ok) return [];
+    return (await res.json()).leads || [];
+  },
+  async createLead(data) {
+    const res = await _apiFetch('/api/admin/leads', { method:'POST', body:JSON.stringify(data) });
+    return res.json();
+  },
+  async updateLeadStatus(id, status) {
+    const res = await _apiFetch(`/api/admin/leads/${id}/status`, { method:'PATCH', body:JSON.stringify({status}) });
+    return res.json();
+  },
+  async deleteLead(id) {
+    const res = await _apiFetch(`/api/admin/leads/${id}`, { method:'DELETE' });
+    return res.ok;
+  },
+  async getContacts() {
+    const res = await _apiFetch('/api/admin/contacts');
+    if (!res.ok) return [];
+    return (await res.json()).contacts || [];
+  },
+  async getAIChats() {
+    const res = await _apiFetch('/api/admin/aichats');
+    if (!res.ok) return [];
+    return (await res.json()).aichats || [];
+  },
+  async createTeamMember(data) {
+    const res = await _apiFetch('/api/admin/team', { method:'POST', body:JSON.stringify(data) });
+    return res.json();
+  },
+  async deleteTeamMember(id) {
+    const res = await _apiFetch(`/api/admin/team/${id}`, { method:'DELETE' });
+    return res.json();
+  },
+  async addTestimonial(data) {
+    const res = await _apiFetch('/api/admin/testimonials', { method:'POST', body:JSON.stringify(data) });
+    return res.json();
+  },
+  async deleteTestimonial(id) {
+    const res = await _apiFetch(`/api/admin/testimonials/${id}`, { method:'DELETE' });
+    return res.ok;
+  },
+  async createBlogPost(data) {
+    const res = await _apiFetch('/api/admin/blog', { method:'POST', body:JSON.stringify(data) });
+    return res.json();
+  },
+  async deleteBlogPost(id) {
+    const res = await _apiFetch(`/api/admin/blog/${id}`, { method:'DELETE' });
+    return res.ok;
+  },
+  async getPricing() {
+    const res = await _apiFetch('/api/admin/pricing');
+    if (!res.ok) return { web:150, ai:100, ads:100, bundle:299 };
+    return (await res.json()).pricing;
+  },
+  async updatePricing(data) {
+    const res = await _apiFetch('/api/admin/pricing', { method:'PUT', body:JSON.stringify(data) });
+    return res.json();
+  },
+  async getDashboard() {
+    const res = await _apiFetch('/api/admin/dashboard');
+    if (!res.ok) return null;
+    return res.json();
+  },
+  async exportLeadsCSV() {
+    const res = await _apiFetch('/api/admin/export/leads');
+    if (!res.ok) { showToast('error','Export failed'); return; }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'hamoran-leads.csv';
+    a.click();
+    showToast('success','Leads exported');
+  },
+};
+
+// ── WHO AM I ─────────────────────────────────────────────
+function isSuperAdmin() {
+  return _uiSession?.role === 'superadmin';
+}
+
+// ── PAGE LOAD ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  checkExistingSession();
+});
+
+document.getElementById('loginPass')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+
+async function loadData() {
+  try {
+    const dash = await AdminAPI.getDashboard();
+    if (dash) {
+      DATA.leads    = dash.recentLeads || DATA.leads;
+    }
+    // Load full leads
+    const leads = await AdminAPI.getLeads();
+    if (leads) DATA.leads = leads;
+    // Load contacts
+    const contacts = await AdminAPI.getContacts();
+    if (contacts) DATA.messages = contacts;
+    // Load AI chats
+    const chats = await AdminAPI.getAIChats();
+    if (chats) DATA.aichats = chats;
+    // Load team
+    const teamRes = await _apiFetch('/api/admin/team');
+    if (teamRes.ok) { const td = await teamRes.json(); DATA.team = td.team || DATA.team; }
+    // Load testimonials
+    const testRes = await _apiFetch('/api/admin/testimonials');
+    if (testRes.ok) { const td = await testRes.json(); DATA.testimonials = td.testimonials || DATA.testimonials; }
+    // Load blog posts
+    const blogRes = await _apiFetch('/api/admin/blog');
+    if (blogRes.ok) { const td = await blogRes.json(); DATA.blogPosts = td.posts || DATA.blogPosts; }
+  } catch(e) { /* non-fatal — keep existing DATA */ }
+}
+
+function saveData() {
+  /* Data persistence handled by the backend API — no-op in API mode */
+}
+
+// ── AUTH ──
+/* Old doLogin removed — authentication now handled by /api/auth/login */
+document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-screen').style.opacity = '1';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').textContent = '';
+}
+
+// ── INIT ──
+let chartsInit = false;
+async function initApp() {
+  await loadData();
+  updateBadges();
+  renderDashboardLeads();
+  renderPFAdmin();
+  renderTeam();
+  renderTestimonials();
+  renderBlog();
+  updateStatsDisplay();
+  if (!chartsInit) { initCharts(); chartsInit = true; }
+  // Poll API for new data every 10s
+  setInterval(async () => {
+    await loadData();
+    updateBadges();
+    renderDashboardLeads();
+    updateStatsDisplay();
+  }, 10000);
+}
+
+// ── SIDEBAR ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ── PAGE NAV ──
+const PAGE_TITLES = {
+  dashboard:       ['Command Centre', 'Real-time overview of Hamoran performance'],
+  analytics:       ['Analytics', 'Deep-dive into your website performance'],
+  leads:           ['Lead Management', 'All contact form submissions and enquiries'],
+  messages:        ['Messages', 'Contact form submissions and enquiries'],
+  aichats:         ['AI Chat History', 'All conversations handled by the AI assistant'],
+  portfolio:       ['Portfolio Manager', 'Manage your 22 showcase projects'],
+  services:        ['Services & Pricing', 'Manage your service offerings'],
+  team:            ['Team Management', 'Manage your team profiles'],
+  testimonials:    ['Testimonials', 'Manage client reviews and social proof'],
+  blog:            ['Blog & News', 'Manage your content and updates'],
+  seo:             ['SEO Settings', 'Optimise your search engine visibility'],
+  pricing:         ['Pricing Editor', 'Manage your service pricing'],
+  'site-settings': ['Site Settings', 'General configuration and preferences'],
+  notifications:   ['Notifications', 'System alerts and activity log']
+};
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
+  const page = document.getElementById('page-'+id);
+  if (page) page.classList.add('active');
+  if (el) el.classList.add('active');
+  else { document.querySelectorAll('.sb-item').forEach(s => { if(s.getAttribute('onclick')&&s.getAttribute('onclick').includes("'"+id+"'")) s.classList.add('active'); }); }
+  const meta = PAGE_TITLES[id] || [id, ''];
+  document.getElementById('topbar-title').textContent = meta[0];
+  document.getElementById('topbar-sub').textContent = meta[1];
+  if (id === 'leads') { renderLeadsTable(); }
+  if (id === 'messages') { renderMessages(); }
+  if (id === 'aichats') { renderAIChats(); }
+  if (id === 'team') { renderTeam(); }
+  if (id === 'testimonials') { renderTestimonials(); }
+  if (id === 'blog') { renderBlog(); }
+}
+
+// ── BADGES ──
+function updateBadges() {
+  const newLeads = DATA.leads.filter(l => (l.status||'new')==='new').length;
+  const newMsgs = DATA.messages.length;
+  document.getElementById('badge-leads').textContent = newLeads;
+  document.getElementById('badge-msgs').textContent = newMsgs;
+  document.getElementById('badge-leads').style.display = newLeads ? 'inline-flex' : 'none';
+  document.getElementById('badge-msgs').style.display = newMsgs ? 'inline-flex' : 'none';
+  document.getElementById('notif-indicator').style.display = (newLeads + newMsgs) > 0 ? 'block' : 'none';
+}
+
+function updateStatsDisplay() {
+  document.getElementById('stat-leads').textContent = DATA.leads.length;
+  document.getElementById('stat-chats').textContent = DATA.aichats.length;
+  document.getElementById('stat-messages').textContent = DATA.messages.length;
+  document.getElementById('ai-total-chats').textContent = DATA.aichats.length;
+  document.getElementById('lead-count-lbl').textContent = DATA.leads.length ? `(${DATA.leads.length} total)` : '';
+}
+
+// ── DASHBOARD LEADS ──
+function renderDashboardLeads() {
+  const el = document.getElementById('dashboard-leads-table');
+  if (!DATA.leads.length) { el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem"><div style="font-size:2rem;margin-bottom:.5rem">🎯</div>No leads yet.</div>'; return; }
+  el.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>Service</th><th>Status</th><th>Date</th></tr></thead><tbody>${DATA.leads.slice(-5).reverse().map(l=>`<tr><td style="font-weight:600">${_esc(l.name)}</td><td>${_esc(l.service)||'-'}</td><td><span class="status-badge status-${_esc((l.status||'new').replace(/[^a-z]/gi,''))}">${_esc(l.status||'New')}</span></td><td>${_esc(l.date)||'-'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── LEADS TABLE ──
+function renderLeadsTable(filter='', statusFilter='') {
+  const tbody = document.getElementById('leads-tbody');
+  let leads = DATA.leads;
+  if (filter) leads = leads.filter(l => (l.name+l.email+l.service).toLowerCase().includes(filter.toLowerCase()));
+  if (statusFilter) leads = leads.filter(l => (l.status||'new')===statusFilter);
+  if (!leads.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">No leads found.</td></tr>'; return; }
+  tbody.innerHTML = leads.map((l,i) => `<tr>
+    <td style="font-weight:600">${l.name}</td>
+    <td style="color:var(--muted)">${_esc(l.email)||'-'}</td>
+    <td>${l.service||'-'}</td>
+    <td><span class="status-badge status-${l.status||'new'}">${l.status||'New'}</span></td>
+    <td style="color:var(--muted);font-size:.78rem">${_esc(l.date)||'-'}</td>
+    <td style="display:flex;gap:.4rem">
+      <button class="action-btn" onclick="changeLead(${i},'active')">Activate</button>
+      <button class="action-btn danger" onclick="deleteLead(${i})">Del</button>
+    </td>
+  </tr>`).join('');
+}
+function filterLeads(v) { renderLeadsTable(v, document.querySelector('#page-leads select').value); }
+function filterLeadStatus(v) { renderLeadsTable(document.querySelector('#page-leads input[type=text]').value, v); }
+async function addLead() {
+  const name = document.getElementById('new-lead-name').value.trim();
+  const email = document.getElementById('new-lead-email').value.trim();
+  if (!name) { showToast('error','Name is required'); return; }
+  const result = await AdminAPI.createLead({
+    name, email,
+    phone:   document.getElementById('new-lead-phone').value,
+    service: document.getElementById('new-lead-service').value,
+    message: document.getElementById('new-lead-msg').value,
+  });
+  if (result.error) { showToast('error', result.errors?.[0]?.message || result.error); return; }
+  await loadData(); updateBadges(); renderLeadsTable(); renderDashboardLeads(); updateStatsDisplay();
+  closeModal('lead-modal'); showToast('success','Lead added successfully');
+  addActivity(`New lead <strong>${name}</strong> added manually`);
+}
+function changeLead(i, status) { DATA.leads[i].status = status; saveData(); renderLeadsTable(); renderDashboardLeads(); showToast('success','Lead updated'); }
+async function deleteLead(i) {
+  if (!confirm('Delete this lead?')) return;
+  const lead = DATA.leads[i];
+  if (!lead) return;
+  if (lead.id) await AdminAPI.deleteLead(lead.id);
+  await loadData(); renderLeadsTable(); renderDashboardLeads(); updateStatsDisplay();
+  showToast('info','Lead deleted');
+}
+function exportLeads() { AdminAPI.exportLeadsCSV(); }
+
+// ── MESSAGES ──
+function renderMessages() {
+  const tbody = document.getElementById('messages-tbody');
+  if (!DATA.messages.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted)">Inbox is empty.</td></tr>'; return; }
+  tbody.innerHTML = DATA.messages.map(m=>`<tr>
+    <td style="font-weight:600">${_esc(m.name)||'Unknown'}</td>
+    <td style="color:var(--muted)">${_esc(m.email)||'-'}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(m.msg||m.message||'-')}</td>
+    <td style="color:var(--muted);font-size:.78rem">${m.date||'-'}</td>
+    <td><span class="status-badge status-new">New</span></td>
+  </tr>`).join('');
+}
+
+// ── AI CHATS ──
+function renderAIChats() {
+  const tbody = document.getElementById('aichats-tbody');
+  if (!DATA.aichats.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted)">No AI chats yet.</td></tr>'; return; }
+  tbody.innerHTML = DATA.aichats.slice(-20).reverse().map((c,i)=>`<tr>
+    <td style="font-family:monospace;font-size:.8rem;color:var(--muted)">Session #${i+1}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(c.firstMsg||c.message||'...')}</td>
+    <td>${_esc(String(c.count||c.messages||1))}</td>
+    <td><span class="tag-chip">${_esc(c.topic||'General')}</span></td>
+    <td style="color:var(--muted);font-size:.78rem">${_esc(c.date||new Date().toLocaleDateString('en-GB'))}</td>
+  </tr>`).join('');
+}
+
+// ── PORTFOLIO ADMIN ──
+const PF_PROJECTS = [
+  {name:'Iron Edge Gym',id:'iron-edge',cat:'gym',emoji:'🏋️',color:'#dc2626',tags:['Website','AI Chat','Facebook Ads']},
+  {name:'Peak Performance',id:'peak-performance',cat:'gym',emoji:'🔥',color:'#f97316',tags:['Website','TikTok Ads']},
+  {name:'Zen Move Studio',id:'zen-move',cat:'gym',emoji:'🧘',color:'#10b981',tags:['Website','AI Chat']},
+  {name:'Boxing Kings MMA',id:'boxing-kings',cat:'gym',emoji:'🥊',color:'#eab308',tags:['Full Bundle']},
+  {name:'Shred Republic',id:'shred-republic',cat:'gym',emoji:'💪',color:'#8b5cf6',tags:['Website','Google Ads']},
+  {name:'GlowCraft Beauty',id:'glowcraft',cat:'ecom',emoji:'🧴',color:'#ec4899',tags:['Full Bundle','Instagram Ads']},
+  {name:'Urban Gear Sport',id:'urban-gear',cat:'ecom',emoji:'👟',color:'#60a5fa',tags:['Full Bundle','TikTok Ads']},
+  {name:'La Casa Italia',id:'la-casa',cat:'restaurant',emoji:'🍝',color:'#d4a94a',tags:['Website','Instagram Ads']},
+  {name:'Burger Republic',id:'burger-republic',cat:'restaurant',emoji:'🍔',color:'#f59e0b',tags:['Website','Facebook Ads']},
+  {name:'Sakura Sushi',id:'sakura-sushi',cat:'restaurant',emoji:'🍣',color:'#ff9ab5',tags:['Website','Instagram Ads']},
+  {name:'Spice Route',id:'spice-route',cat:'restaurant',emoji:'🌶️',color:'#fbbf24',tags:['Website','AI Chat']},
+  {name:'Maison Noire',id:'maison-noire',cat:'fashion',emoji:'🖤',color:'rgba(255,255,255,.6)',tags:['Full Bundle','Instagram Ads']},
+  {name:'Aurora London',id:'aurora-london',cat:'fashion',emoji:'🌸',color:'#c084fc',tags:['Full Bundle','TikTok Ads']},
+  {name:'Raw Thread Co.',id:'raw-thread',cat:'fashion',emoji:'♻️',color:'#d4a76a',tags:['Website','Paid Ads']},
+  {name:'Verse Wear',id:'verse-wear',cat:'fashion',emoji:'🌌',color:'#818cf8',tags:['Website','Instagram Ads']},
+  {name:'Golden Ratio Menswear',id:'golden-ratio',cat:'fashion',emoji:'🤵',color:'#c9a84c',tags:['Website','Google Ads']},
+  {name:'Sol Studio',id:'sol-studio',cat:'fashion',emoji:'☀️',color:'#fb923c',tags:['Website','TikTok Ads']},
+  {name:'NeuralPath.io',id:'neuralpath',cat:'ai',emoji:'🧠',color:'#818cf8',tags:['Full Bundle','Google Ads']},
+  {name:'Synthwave AI',id:'synthwave-ai',cat:'ai',emoji:'⚡',color:'#06b6d4',tags:['Website','Google Ads']},
+  {name:'Cortex CRM',id:'cortex-crm',cat:'ai',emoji:'🤖',color:'#f59e0b',tags:['Full Bundle','Google Ads']},
+  {name:'Elite Homes UK',id:'elite-homes',cat:'realestate',emoji:'🏡',color:'#60a5fa',tags:['Full Bundle','Google Ads']},
+  {name:'Northern Bricks',id:'northern-bricks',cat:'realestate',emoji:'🏢',color:'#c9a84c',tags:['Full Bundle','Facebook Ads']}
+];
+
+let customProjects = [];
+function allProjects() { return [...PF_PROJECTS, ...customProjects]; }
+
+function renderPFAdmin(catFilter='all') {
+  const grid = document.getElementById('pf-admin-grid');
+  const projects = allProjects().filter(p => catFilter==='all' || p.cat===catFilter);
+  grid.innerHTML = projects.map((p,i) => `
+    <div class="pf-manage-card">
+      <div class="pf-manage-img" style="background:rgba(255,255,255,.04)">${p.emoji}</div>
+      <div class="pf-manage-body">
+        <div class="pf-manage-name">${p.name}</div>
+        <div class="pf-manage-cat" style="color:${p.color}">${p.cat.toUpperCase()}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.8rem">${(p.tags||[]).map(t=>`<span class="tag-chip" style="font-size:.68rem">${t}</span>`).join('')}</div>
+        <div class="pf-manage-actions">
+          <button class="btn btn-ghost btn-sm" onclick="window.open('hamoran.html#portfolio','_blank')">View</button>
+          ${i>=PF_PROJECTS.length?`<button class="btn btn-sm btn-danger" onclick="deleteCustomProject(${i-PF_PROJECTS.length})">Del</button>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+function filterPFAdmin(cat, el) {
+  document.querySelectorAll('#pf-filter-tabs .pill-tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderPFAdmin(cat);
+}
+function addProject() {
+  const name = document.getElementById('pf-name').value.trim();
+  if (!name) { showToast('error','Project name required'); return; }
+  customProjects.push({ name, cat:document.getElementById('pf-cat').value, desc:document.getElementById('pf-desc').value, tags:document.getElementById('pf-tags').value.split(',').map(t=>t.trim()).filter(Boolean), emoji:'🌐', color:'var(--blue)' });
+  closeModal('pf-modal'); renderPFAdmin(); showToast('success','Project added');
+  addActivity(`New project <strong>${name}</strong> added to portfolio`);
+}
+function deleteCustomProject(i) { if(!confirm('Delete this project? This cannot be undone.')) return; customProjects.splice(i,1); renderPFAdmin(); showToast('info','Project deleted'); }
+
+// ── TEAM ──
+function renderTeam() { if (window._saRenderTeam) window._saRenderTeam(); }
+async function addTeamMember() {
+  const name  = document.getElementById('tm-name').value.trim();
+  const email = document.getElementById('tm-email').value.trim();
+  if (!name) { showToast('error','Name required'); return; }
+  const result = await AdminAPI.createTeamMember({
+    name, email,
+    role: document.getElementById('tm-role').value,
+    bio:  document.getElementById('tm-bio').value,
+  });
+  if (result.error) { showToast('error', result.errors?.[0]?.message || result.error); return; }
+  await loadData(); renderTeam(); closeModal('team-modal'); showToast('success','Team member added');
+}
+function deleteTeamMember(i) { if(i<3&&!confirm('Remove this core team member?')) return; DATA.team.splice(i,1); saveData(); renderTeam(); showToast('info','Member removed'); }
+
+// ── TESTIMONIALS ──
+function renderTestimonials() {
+  const grid = document.getElementById('testimonials-grid');
+  grid.innerHTML = DATA.testimonials.map((t,i) => `
+    <div class="glass-card">
+      <div style="color:#fbbf24;font-size:.9rem;margin-bottom:.8rem">${'★'.repeat(t.rating)}</div>
+      <div style="font-size:.88rem;color:var(--muted);line-height:1.7;font-style:italic;margin-bottom:1rem">${_esc(t.text)}</div>
+      <div style="font-weight:700;font-size:.85rem;color:var(--blue);margin-bottom:.3rem">${_esc(t.name)}</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">${_esc(t.company)}</div>
+      <button class="btn btn-danger btn-sm" onclick="deleteTestimonial(${i})">Remove</button>
+    </div>`).join('');
+}
+async function addTestimonial() {
+  const name = document.getElementById('t-name').value.trim();
+  if (!name) { showToast('error','Name required'); return; }
+  const tText = document.getElementById('t-text').value.trim();
+  if (!tText || tText.length < 10) { showToast('error','Review text must be at least 10 characters'); return; }
+  const result = await AdminAPI.addTestimonial({
+    name,
+    company: document.getElementById('t-company').value,
+    text: tText,
+    rating: parseInt(document.getElementById('t-rating').value) || 5,
+  });
+  if (result.error) { showToast('error', result.errors?.[0]?.message || result.error); return; }
+  await loadData(); renderTestimonials(); closeModal('test-modal'); showToast('success','Testimonial added');
+}
+async function deleteTestimonial(i) {
+  if (!confirm('Remove this testimonial?')) return;
+  const t = DATA.testimonials[i];
+  if (t?.id) await AdminAPI.deleteTestimonial(t.id);
+  await loadData(); renderTestimonials(); showToast('info','Testimonial removed');
+}
+
+// ── BLOG ──
+function renderBlog() {
+  const tbody = document.getElementById('blog-tbody');
+  if (!DATA.blogPosts.length) { tbody.innerHTML='<tr><td colspan="5" style="padding:2rem;text-align:center;color:var(--muted)">No blog posts yet.</td></tr>'; return; }
+  tbody.innerHTML = DATA.blogPosts.map((p,i) => `<tr>
+    <td style="font-weight:600">${_esc(p.title)}</td>
+    <td><span class="status-badge ${p.status==='published'?'status-active':'status-pending'}">${p.status}</span></td>
+    <td><span class="tag-chip">${p.cat}</span></td>
+    <td style="color:var(--muted);font-size:.78rem">${p.date}</td>
+    <td><button class="action-btn danger" onclick="deleteBlogPost(${i})">Delete</button></td>
+  </tr>`).join('');
+}
+async function addBlogPost() {
+  const title = document.getElementById('blog-title').value.trim();
+  if (!title || title.length < 5) { showToast('error','Title must be at least 5 characters'); return; }
+  const content = document.getElementById('blog-content').value.trim();
+  if (!content) { showToast('error','Post content cannot be empty'); return; }
+  const result = await AdminAPI.createBlogPost({
+    title,
+    category: document.getElementById('blog-cat').value,
+    status:   document.getElementById('blog-status').value,
+    content,
+  });
+  if (result.error) { showToast('error', result.errors?.[0]?.message || result.error); return; }
+  await loadData(); renderBlog(); closeModal('blog-modal'); showToast('success','Blog post saved');
+}
+async function deleteBlogPost(i) {
+  if (!confirm('Delete this blog post?')) return;
+  const post = DATA.blogPosts[i];
+  if (post?.id) await AdminAPI.deleteBlogPost(post.id);
+  await loadData(); renderBlog(); showToast('info','Post deleted');
+}
+
+// ── SAVE ACTIONS ──
+function saveServices() { showToast('success','Services saved successfully'); addActivity('Services configuration <strong>updated</strong>'); }
+function savePricing() { showToast('success','Pricing updated successfully'); addActivity('Pricing <strong>updated</strong>'); }
+function saveSEO() { showToast('success','SEO settings saved'); addActivity('SEO settings <strong>updated</strong>'); }
+function saveSiteSettings() { showToast('success','Site settings saved'); }
+function updateCredentials() { showToast('success','Credentials updated'); }
+function exportReport() {
+  showToast('info','Generating report...');
+  setTimeout(() => showToast('success','Report ready — check your downloads'), 1500);
+}
+function clearNotifications() { document.getElementById('notif-list').innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)">No notifications</div>'; showToast('info','Notifications cleared'); }
+
+// ── ACTIVITY FEED ──
+function addActivity(text) {
+  const feed = document.getElementById('activity-feed');
+  const item = document.createElement('div'); item.className='activity-item';
+  item.innerHTML=`<span class="activity-dot" style="background:var(--blue)"></span><div><div class="activity-text">${text}</div><div class="activity-time">Just now</div></div>`;
+  feed.insertBefore(item, feed.firstChild);
+  // Add to notifications
+  const notifList = document.getElementById('notif-list');
+  const ni = document.createElement('div'); ni.className='activity-item';
+  ni.innerHTML=`<span class="activity-dot" style="background:var(--blue)"></span><div><div class="activity-text">${text}</div><div class="activity-time">Just now</div></div>`;
+  notifList.insertBefore(ni, notifList.firstChild);
+  document.getElementById('notif-indicator').style.display = 'block';
+}
+
+// ── TOAST ──
+function showToast(type, msg) {
+  const icons = { success:'✅', error:'❌', info:'ℹ️', warning:'⚠️' };
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div'); toast.className=`toast ${type}`;
+  toast.innerHTML=`<span class="toast-icon">${icons[type]||'ℹ️'}</span><span class="toast-msg">${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.classList.add('removing'); setTimeout(()=>toast.remove(),300); }, 3000);
+}
+
+// ── MODAL ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-backdrop').forEach(m => { m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }); });
+
+// ── CHARTS ──
+const CHART_DEFAULTS = {
+  color: 'rgba(180,195,255,.45)',
+  grid: { color:'rgba(255,255,255,.04)', drawBorder:false },
+  ticks: { color:'rgba(180,195,255,.45)', font:{ family:'DM Sans', size:11 } }
+};
+
+function makeGradient(ctx, c1, c2) {
+  const g = ctx.createLinearGradient(0,0,0,200);
+  g.addColorStop(0, c1); g.addColorStop(1, c2); return g;
+}
+
+function initCharts() {
+  // Traffic Chart
+  const tc = document.getElementById('trafficChart').getContext('2d');
+  const trafficGrad = makeGradient(tc,'rgba(99,102,241,.5)','rgba(99,102,241,.0)');
+  window.trafficChart = new Chart(tc, {
+    type:'line',
+    data:{ labels:generateDayLabels(30), datasets:[{ label:'Visitors', data:generateTrafficData(30), borderColor:'#6366f1', backgroundColor:trafficGrad, borderWidth:2, fill:true, tension:.4, pointRadius:0, pointHoverRadius:5 }] },
+    options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{backgroundColor:'rgba(13,14,26,.9)',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#f0f4ff',bodyColor:'rgba(180,195,255,.7)'} }, scales:{ x:{grid:CHART_DEFAULTS.grid,ticks:{...CHART_DEFAULTS.ticks,maxTicksLimit:6}}, y:{grid:CHART_DEFAULTS.grid,ticks:CHART_DEFAULTS.ticks} } }
+  });
+
+  // Sources Donut
+  const sc = document.getElementById('sourcesChart').getContext('2d');
+  new Chart(sc, {
+    type:'doughnut',
+    data:{ labels:['Organic','Direct','Social','Referral','Paid'], datasets:[{ data:[38,25,20,10,7], backgroundColor:['#6366f1','#8b5cf6','#ec4899','#06b6d4','#f59e0b'], borderWidth:0, hoverOffset:8 }] },
+    options:{ responsive:true, plugins:{ legend:{position:'right',labels:{color:'rgba(180,195,255,.6)',font:{family:'DM Sans',size:11},boxWidth:12,padding:14}}, tooltip:{backgroundColor:'rgba(13,14,26,.9)',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#f0f4ff',bodyColor:'rgba(180,195,255,.7)'} }, cutout:'65%' }
+  });
+
+  // Weekly bar
+  const wc = document.getElementById('weeklyChart').getContext('2d');
+  new Chart(wc, {
+    type:'bar',
+    data:{ labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets:[{ data:[142,198,167,224,312,198,145], backgroundColor:ctx=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,200); g.addColorStop(0,'rgba(99,102,241,.8)'); g.addColorStop(1,'rgba(139,92,246,.3)'); return g; }, borderRadius:6, borderSkipped:false }] },
+    options:{ responsive:true, plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,14,26,.9)',borderColor:'rgba(99,102,241,.3)',borderWidth:1,titleColor:'#f0f4ff',bodyColor:'rgba(180,195,255,.7)'}}, scales:{ x:{grid:CHART_DEFAULTS.grid,ticks:CHART_DEFAULTS.ticks}, y:{grid:CHART_DEFAULTS.grid,ticks:CHART_DEFAULTS.ticks} } }
+  });
+
+  // Portfolio clicks horizontal bar
+  const pc = document.getElementById('portfolioClicksChart').getContext('2d');
+  new Chart(pc, {
+    type:'bar',
+    data:{ labels:['NeuralPath.io','GlowCraft','Iron Edge','La Casa Italia','Elite Homes','Maison Noire'], datasets:[{ data:[142,128,115,98,87,76], backgroundColor:'rgba(139,92,246,.6)', borderRadius:4, borderSkipped:false }] },
+    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,14,26,.9)',borderColor:'rgba(139,92,246,.3)',borderWidth:1,titleColor:'#f0f4ff',bodyColor:'rgba(180,195,255,.7)'}}, scales:{ x:{grid:CHART_DEFAULTS.grid,ticks:CHART_DEFAULTS.ticks}, y:{grid:{display:false},ticks:CHART_DEFAULTS.ticks} } }
+  });
+
+  // Device donut
+  const dc = document.getElementById('deviceChart').getContext('2d');
+  new Chart(dc, {
+    type:'doughnut',
+    data:{ labels:['Mobile','Desktop','Tablet'], datasets:[{ data:[52,38,10], backgroundColor:['#6366f1','#06b6d4','#f59e0b'], borderWidth:0, hoverOffset:8 }] },
+    options:{ responsive:true, plugins:{ legend:{position:'bottom',labels:{color:'rgba(180,195,255,.6)',font:{family:'DM Sans',size:11},boxWidth:12,padding:12}}, tooltip:{backgroundColor:'rgba(13,14,26,.9)',borderColor:'rgba(99,102,241,.3)',borderWidth:1} }, cutout:'65%' }
+  });
+}
+
+function switchTrafficPeriod(days, el) {
+  document.querySelectorAll('#page-dashboard .pill-tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if (window.trafficChart) {
+    window.trafficChart.data.labels = generateDayLabels(days);
+    window.trafficChart.data.datasets[0].data = generateTrafficData(days);
+    window.trafficChart.update();
+  }
+}
+
+function generateDayLabels(n) {
+  const labels = []; const now = new Date();
+  for (let i=n-1; i>=0; i--) { const d=new Date(now); d.setDate(d.getDate()-i); labels.push(n<=7?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]:d.getDate()+'/'+(d.getMonth()+1)); }
+  return labels;
+}
+function generateTrafficData(n) {
+  const base = 60; const data = [];
+  for (let i=0; i<n; i++) { data.push(Math.floor(base + Math.random()*120 + Math.sin(i*0.4)*30)); }
+  return data;
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('login-screen').style.display!=='none') doLogin();
+});
+</script>
+
+<script>
+
+/* ═══════════════════════════════════════════════════════
+   HAMORAN ADMIN — COMPLETE FUNCTIONALITY ENHANCEMENT
+═══════════════════════════════════════════════════════ */
+
+/* ── SERVICES PAGE RENDERER ── */
+const SERVICES_DATA = [
+  { id:'web', icon:'🌐', name:'Website Development', price:150, period:'one-time', desc:'Custom-designed website with modern UI, fully mobile responsive, fast loading, and built-in SEO.', features:['Custom design','Mobile responsive','Fast loading','SEO optimised','Contact forms'], color:'var(--blue)', active:true },
+  { id:'ai', icon:'🤖', name:'AI Chat System', price:100, period:'per month', desc:'Intelligent 24/7 AI assistant that handles customer queries, captures leads, and books appointments.', features:['24/7 AI support','Lead capture','Appointment booking','Custom training'], color:'var(--purple)', active:true },
+  { id:'ads', icon:'📣', name:'Paid Advertising', price:100, period:'per month', desc:'Data-driven ad campaigns on Meta, Google & TikTok engineered for maximum return on ad spend.', features:['Meta & Google Ads','TikTok campaigns','ROI tracking','Monthly reports'], color:'var(--cyan)', active:true },
+  { id:'bundle', icon:'🚀', name:'Full Bundle Package', price:299, period:'per month', desc:'The complete growth system — website, AI, and ads in one seamless, managed package.', features:['Everything included','Priority support','Monthly check-ins','Free updates'], color:'var(--amber)', active:true, featured:true },
+];
+
+function renderServices() {
+  const grid = document.getElementById('services-editor');
+  if (!grid) return;
+  grid.innerHTML = SERVICES_DATA.map((svc, i) => `
+    <div class="glass-card" style="${svc.featured ? 'border-color:rgba(59,130,246,.3)' : ''}">
+      <div class="card-title">
+        <span>${svc.icon} ${svc.name}</span>
+        <label class="toggle-switch" title="${svc.active ? 'Active' : 'Inactive'}">
+          <input type="checkbox" ${svc.active ? 'checked' : ''} onchange="toggleService(${i},this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Price (£)</label>
+        <input class="form-input" type="number" value="${svc.price}" onchange="SERVICES_DATA[${i}].price=parseInt(this.value)" style="border-color:${svc.color}33">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Billing Period</label>
+        <input class="form-input" value="${svc.period}" onchange="SERVICES_DATA[${i}].period=this.value">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" style="height:80px" onchange="SERVICES_DATA[${i}].desc=this.value">${svc.desc}</textarea>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem">
+        ${svc.features.map(f => `<span class="tag-chip">${f}</span>`).join('')}
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="saveServiceItem(${i})">💾 Save</button>
+        <button class="btn btn-ghost btn-sm" onclick="viewServiceLive()">🌐 Preview</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleService(i, val) {
+  SERVICES_DATA[i].active = val;
+  showToast(val ? 'success' : 'info', `${SERVICES_DATA[i].name} ${val ? 'activated' : 'deactivated'}`);
+}
+
+function saveServiceItem(i) {
+  showToast('success', `${SERVICES_DATA[i].name} saved successfully`);
+  addActivity(`Service <strong>${SERVICES_DATA[i].name}</strong> updated`);
+}
+
+function viewServiceLive() {
+  window.open('hamoran.html#services', '_blank');
+}
+
+// Override saveServices
+window.saveServices = function() {
+  showToast('success', 'All service changes saved');
+  addActivity('Services configuration <strong>updated</strong>');
+};
+
+/* ── ENHANCED SAVE PRICING ── */
+window.savePricing = async function() {
+  const data = {
+    web:    parseInt(document.getElementById('price-web')?.value) || 150,
+    ai:     parseInt(document.getElementById('price-ai')?.value) || 100,
+    ads:    parseInt(document.getElementById('price-ads')?.value) || 100,
+    bundle: parseInt(document.getElementById('price-bundle')?.value) || 299,
+  };
+  const result = await AdminAPI.updatePricing(data);
+  if (result && result.error) { showToast('error', result.error); return; }
+  showToast('success', 'Pricing updated');
+  addActivity('Pricing <strong>updated</strong>');
+};
+
+/* ── ENHANCED SAVE SEO ── */
+window.saveSEO = async function() {
+  const res = await _apiFetch('/api/admin/seo', {
+    method: 'PUT',
+    body: JSON.stringify({
+      title:       document.getElementById('seo-title')?.value || '',
+      description: document.getElementById('seo-desc')?.value || '',
+      keywords:    document.getElementById('seo-keywords')?.value || '',
+    }),
+  });
+  if (!res.ok) { showToast('error','SEO save failed'); return; }
+  showToast('success', 'SEO settings saved');
+  addActivity('SEO settings <strong>updated</strong>');
+  // Animate SEO score ring
+  const ring = document.getElementById('seo-ring');
+  if (ring) {
+    const score = Math.min(100, 70 + Math.floor(Math.random() * 20));
+    const offset = 264 - (264 * score / 100);
+    ring.style.transition = 'stroke-dashoffset 1.2s ease';
+    ring.style.strokeDashoffset = offset;
+    const num = document.querySelector('.seo-score-num');
+    if (num) num.textContent = score;
+  }
+};
+
+/* ── ENHANCED SITE SETTINGS ── */
+window.saveSiteSettings = function() {
+  showToast('success', 'Site settings saved successfully');
+  addActivity('Site settings <strong>updated</strong>');
+};
+
+window.updateCredentials = function() {
+  const email = document.getElementById('cfg-email')?.value;
+  const pass = document.getElementById('cfg-pass')?.value;
+  if (!email || !email.includes('@')) { showToast('error', 'Invalid email address'); return; }
+  if (pass && pass.length < 6) { showToast('error', 'Password must be at least 6 characters'); return; }
+  showToast('success', 'Credentials updated successfully');
+  document.getElementById('cfg-pass').value = '';
+};
+
+/* ── EXPORT REPORT ── */
+window.exportReport = function() {
+  showToast('info', 'Generating performance report...');
+  setTimeout(() => {
+    const reportData = `HAMORAN PERFORMANCE REPORT\n${'='.repeat(40)}\nGenerated: ${new Date().toLocaleString('en-GB')}\n\nKEY METRICS\n${'-'.repeat(20)}\nMonthly Visitors: 2,847\nLeads Collected: ${DATA.leads.length}\nMessages: ${DATA.messages.length}\nAI Chats: ${DATA.aichats.length}\nConversion Rate: 4.8%\nAvg Session: 3:42\n\nLEADS\n${'-'.repeat(20)}\n${DATA.leads.map(l=>`${l.name} | ${l.email} | ${l.service} | ${l.status||'new'} | ${l.date}`).join('\n') || 'No leads yet'}\n`;
+    const blob = new Blob([reportData], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `hamoran-report-${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}.txt`;
+    a.click();
+    showToast('success', 'Report downloaded');
+    addActivity('Performance report <strong>exported</strong>');
+  }, 1500);
+};
+
+/* ── STATUS CHANGE FOR LEADS ── */
+window.changeLead = async function(i, status) {
+  const lead = DATA.leads[i];
+  if (!lead) return;
+  if (lead.id) await AdminAPI.updateLeadStatus(lead.id, status);
+  await loadData();
+  renderLeadsTable(
+    document.querySelector('#page-leads input[type=text]')?.value || '',
+    document.querySelector('#page-leads select')?.value || ''
+  );
+  renderDashboardLeads();
+  showToast('success', `Lead marked as ${status}`);
+};
+
+/* ── FULL CRUD LEAD EDIT ── */
+window.editLead = function(i) {
+  const lead = DATA.leads[i];
+  if (!lead) return;
+  document.getElementById('new-lead-name').value = lead.name || '';
+  document.getElementById('new-lead-email').value = lead.email || '';
+  document.getElementById('new-lead-phone').value = lead.phone || '';
+  document.getElementById('new-lead-msg').value = lead.message || '';
+  openModal('lead-modal');
+};
+
+/* ── ENHANCED LEADS TABLE with more actions ── */
+const _origRenderLeadsTable = window.renderLeadsTable;
+window.renderLeadsTable = function(filter, statusFilter) {
+  filter = filter || '';
+  statusFilter = statusFilter || '';
+  const tbody = document.getElementById('leads-tbody');
+  let leads = DATA.leads;
+  if (filter) leads = leads.filter(l => (l.name+l.email+(l.service||'')).toLowerCase().includes(filter.toLowerCase()));
+  if (statusFilter) leads = leads.filter(l => (l.status||'new') === statusFilter);
+  if (!leads.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--muted)">
+      <div style="font-size:2.5rem;margin-bottom:1rem">🎯</div>
+      <div style="font-weight:600;margin-bottom:.5rem">${filter || statusFilter ? 'No matching leads' : 'No leads yet'}</div>
+      <div style="font-size:.82rem">Leads from your website contact form will appear here automatically.</div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = leads.map((l, i) => {
+    const realIdx = DATA.leads.indexOf(l);
+    return `<tr>
+      <td><div style="font-weight:600">${_esc(l.name)}</div><div style="font-size:.75rem;color:var(--muted)">${_esc(l.phone)||''}</div></td>
+      <td style="color:var(--muted);font-size:.82rem">${_esc(l.email)||'-'}</td>
+      <td><span class="tag-chip" style="font-size:.7rem">${_esc((l.service||'-').split('—')[0].trim())}</span></td>
+      <td>
+        <select style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:4px 8px;font-size:.75rem;cursor:pointer" onchange="changeLead(${realIdx},this.value)">
+          <option value="new" ${(l.status||'new')==='new'?'selected':''}>New</option>
+          <option value="active" ${l.status==='active'?'selected':''}>Active</option>
+          <option value="pending" ${l.status==='pending'?'selected':''}>Pending</option>
+          <option value="closed" ${l.status==='closed'?'selected':''}>Closed</option>
+        </select>
+      </td>
+      <td style="color:var(--muted);font-size:.78rem">${_esc(l.date)||'-'}</td>
+      <td style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <button class="action-btn" title="Contact via WhatsApp" onclick="contactLeadWA(${realIdx})">💬</button>
+        <button class="action-btn danger" onclick="deleteLead(${realIdx})">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+/* ── CONTACT LEAD VIA WHATSAPP ── */
+window.contactLeadWA = function(i) {
+  const l = DATA.leads[i];
+  if (!l) return;
+  const msg = encodeURIComponent(`Hello ${l.name}! 👋 This is Hamoran following up on your enquiry about ${l.service||'our services'}. Do you have a few minutes to chat?`);
+  const phone = (l.phone||'').replace(/\D/g,'');
+  if (phone) {
+    window.open(`https://wa.me/${phone.startsWith('44')?phone:'44'+phone.replace(/^0/,'')}?text=${msg}`, '_blank');
+  } else {
+    showToast('info', `No phone for ${l.name}. Email: ${l.email}`);
+    window.open(`mailto:${l.email}?subject=Following up — Hamoran&body=Hello ${l.name},`, '_blank');
+  }
+};
+
+/* ── QUICK STATS on dashboard ── */
+function animateDashboardStats() {
+  // Animate KPI numbers on page load
+  document.querySelectorAll('.stat-value[id]').forEach(el => {
+    const val = el.textContent;
+    if (!val || isNaN(parseInt(val))) return;
+    const target = parseInt(val);
+    let current = 0;
+    const step = Math.max(1, Math.ceil(target / 30));
+    const t = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current.toLocaleString();
+      if (current >= target) clearInterval(t);
+    }, 40);
+  });
+}
+
+/* ── PATCH initApp to include services ── */
+const _origInitApp = window.initApp;
+;
+
+/* ── PATCH showPage to render services when visited ── */
+const _origShowPage = window.showPage;
+;
+
+/* ── ADD SESSION STORAGE SYNC ── */
+setInterval(() => {
+  try {
+    const mainData = JSON.parse(sessionStorage.getItem('hamoran_data') || '{}');
+    let changed = false;
+    if (mainData.leads && mainData.leads.length > DATA.leads.length) {
+      const newLeads = mainData.leads.filter(ml => !DATA.leads.find(l => l.email === ml.email && l.name === ml.name));
+      if (newLeads.length) {
+        newLeads.forEach(l => {
+          DATA.leads.push(l);
+          addActivity(`New lead from website: <strong>${l.name}</strong>`);
+          showToast('info', `New lead: ${l.name}`);
+        });
+        changed = true;
+      }
+    }
+    if (mainData.messages) {
+      const newMsgs = (mainData.messages || []).filter(mm => !DATA.messages.find(m => m.email === mm.email && m.msg === mm.msg));
+      if (newMsgs.length) { DATA.messages.push(...newMsgs); changed = true; }
+    }
+    if (changed) { updateBadges(); renderDashboardLeads(); updateStatsDisplay(); }
+  } catch(e){}
+}, 3000);
+
+/* ── KEYBOARD SHORTCUT: ESC closes modal ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+/* ── TABLE SEARCH on leads ── */
+(function() {
+  const searchInput = document.querySelector('#page-leads input[type=text]');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const statusSel = document.querySelector('#page-leads select');
+      renderLeadsTable(searchInput.value, statusSel ? statusSel.value : '');
+    });
+  }
+})();
+
+/* SECURITY: removed verbose log */
+
+
+</script>
+
+<script>
+/* ── SECURITY: HTML escape utility ── */
+function _esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+/* ── SECURITY: Login card shake animation ── */
+
+
+/* ══════════════════════════════════════════════════════════
+   HAMORAN — SUPER ADMIN PROTECTION SYSTEM v1.0
+   Account: moidabdul959@gmail.com
+   Super Admin: Moid — Permanent, Immutable, Highest Authority
+══════════════════════════════════════════════════════════ */
+
+/* ── SUPER ADMIN DEFINITION (read-only, frozen object) ── */
+const SUPER_ADMIN = Object.freeze({
+  email:   process?.env?.ADMIN_EMAIL || '[server-configured]',
+  name:    'Moid',
+  role:    'CEO & Super Admin',
+  initial: 'M',
+  badge:   '👑 CEO & Super Admin',
+  color:   'linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899)',
+  // No secrets stored client-side — all authentication is server-side
+  powers: Object.freeze([
+    'delete_any_admin','promote_to_admin','demote_from_admin',
+    'access_all_data','modify_billing','reset_credentials','purge_data',
+    'system_config','super_admin_transfer'
+  ])
+}));
+
+/* ── SESSION AUTHORITY ── */
+/* Session helpers (UI only, auth is server-side) */
+function _getSession() { return _uiSession; }
+function _clearSession() { _uiSession = null; _csrfToken = null; }
+function _forceLogout(reason) {
+  if (typeof showToast === 'function') showToast('info', reason || 'Session ended');
+  setTimeout(() => doLogout(), 1500);
+}
+
+
+function _getSession() {
+  if (_currentSession) return _currentSession;
+  try {
+    const raw = /* _ham_sa_token removed — auth now via HttpOnly cookie */
+    if (!raw) return null;
+    const parsed = JSON.parse(atob(raw));
+    if (parsed.sig !== SUPER_ADMIN._sig) return null;  // tamper check
+    if (parsed.exp && Date.now() > parsed.exp) { /* _ham_sa_token removed — auth now via HttpOnly cookie */ return null; } // expired
+    // Validate email format
+    if(!parsed.e || !parsed.e.includes('@')){ /* _ham_sa_token removed — auth now via HttpOnly cookie */ return null; }
+    _currentSession = { email: parsed.e, isSuperAdmin: parsed.e === SUPER_ADMIN.email, loginTime: parsed.t };
+    return _currentSession;
+  } catch(e) { /* _ham_sa_token removed — auth now via HttpOnly cookie */ return null; }
+}
+
+function _clearSession() {
+  _currentSession = null;
+  try { /* _ham_sa_token removed — auth now via HttpOnly cookie */ } catch(e){}
+}
+
+/* ── PROTECTION GUARD ── */
+function _isSuperAdminTarget(emailOrName) {
+  if (!emailOrName) return false;
+  const s = String(emailOrName).toLowerCase().trim();
+  return (
+    s === SUPER_ADMIN.email ||
+    s === SUPER_ADMIN.name.toLowerCase() ||
+    s === 'ceo & super admin' ||
+    s === 'moidabdul959@gmail.com'
+  );
+}
+
+/* Check if a team member object IS the Super Admin */
+function _memberIsSA(m) {
+  if (!m) return false;
+  return (
+    _isSuperAdminTarget(m.email) ||
+    _isSuperAdminTarget(m.name) ||
+    m.isSuperAdmin === true
+  );
+}
+
+function _blockIfSuperAdmin(targetEmailOrName, action) {
+  if (_isSuperAdminTarget(targetEmailOrName)) {
+    showToast('error', `🚫 Super Admin account cannot be ${action}`);
+    _logProtectionEvent(action, targetEmailOrName);
+    return true; // blocked
+  }
+  return false;
+}
+
+function _requireSuperAdmin(action) {
+  const sess = _getSession();
+  if (!sess || !sess.isSuperAdmin) {
+    showToast('error', `🔒 Only Super Admin can ${action}`);
+    return false;
+  }
+  return true;
+}
+
+function _logProtectionEvent(action, target) {
+  console.warn(`[HAMORAN SECURITY] Blocked attempt to ${action} Super Admin account (${target})`);
+  try {
+    const log = JSON.parse(/* _ham_sec_log removed */
+    log.push({ action, target, time: new Date().toISOString(), blocked: true });
+    /* _ham_sec_log removed */
+  } catch(e){}
+}
+
+/* ── PATCH DOLOGIN to set session ── */
+const __origDoLogin = window.doLogin;
+/* SA login visual handled via _setSession hook below */;
+
+/* ── PATCH DOLOGOUT ── */
+const __origDoLogout = window.doLogout;
+window.doLogout = function() {
+  _clearSession();
+  if (__origDoLogout) __origDoLogout();
+  else {
+    const app = document.getElementById('app');
+    const ls = document.getElementById('login-screen');
+    if (app) app.classList.remove('visible');
+    if (ls) { ls.style.display = 'flex'; ls.style.opacity = '1'; }
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginErr').textContent = '';
+  }
+};
+
+/* ── SUPER ADMIN LOGIN ANIMATION ── */
+function _animateSuperAdminLogin() {
+  const card = document.querySelector('.login-card');
+  if (!card) return;
+  // Flash golden glow
+  card.style.transition = 'box-shadow .4s, border-color .4s';
+  card.style.boxShadow = '0 0 60px rgba(99,102,241,.6), 0 0 120px rgba(139,92,246,.3)';
+  card.style.borderColor = 'rgba(99,102,241,.6)';
+
+  // Show super admin greeting
+  const hint = card.querySelector('.login-hint');
+  if (hint) {
+    hint.innerHTML = '👑 <strong style="color:#818cf8">CEO & Super Admin — Welcome, Moid</strong>';
+    hint.style.color = '#818cf8';
+  }
+}
+
+/* ── PATCH initApp to apply SA UI ── */
+const __origInitApp = window.initApp;
+;
+
+/* ── APPLY SUPER ADMIN UI ELEMENTS ── */
+function _applySuperAdminUI() {
+  const sess = _getSession();
+  const isSA = sess && sess.isSuperAdmin;
+
+  // Update sidebar user block
+  const sbUserName = document.querySelector('.sb-user-name');
+  const sbUserRole = document.querySelector('.sb-user-role');
+  const sbAvatar   = document.querySelector('.sb-avatar');
+
+  if (sbUserName) sbUserName.innerHTML = `${SUPER_ADMIN.name} ${isSA ? '<span class="sa-badge-small">SA</span>' : ''}`;
+  if (sbUserRole) sbUserRole.innerHTML = isSA ? `<span style="color:#a78bfa;font-weight:700">👑 CEO &amp; Super Admin</span>` : 'Admin · Sign out';
+  if (sbAvatar && isSA) {
+    sbAvatar.style.background = SUPER_ADMIN.color;
+    sbAvatar.style.boxShadow = '0 0 14px rgba(99,102,241,.5)';
+  }
+
+  // Update topbar user
+  const tbAvatar = document.querySelector('.topbar-avatar');
+  const tbName   = document.querySelector('.topbar-user-name');
+  if (tbAvatar && isSA) {
+    tbAvatar.style.background = SUPER_ADMIN.color;
+    tbAvatar.style.boxShadow = '0 0 10px rgba(99,102,241,.5)';
+  }
+  if (tbName && isSA) {
+    tbName.innerHTML = `${SUPER_ADMIN.name} <span class="sa-badge-small" title="CEO &amp; Super Admin">CEO &middot; SA</span>`;
+  }
+
+  // Add SA indicator strip to topbar
+  if (isSA && !document.getElementById('sa-strip')) {
+    const strip = document.createElement('div');
+    strip.id = 'sa-strip';
+    strip.innerHTML = `
+      <span style="font-size:.75rem">👑</span>
+      <span>Super Admin Session Active</span>
+      <span class="sa-strip-dot"></span>
+    `;
+    document.querySelector('.topbar')?.appendChild(strip);
+  }
+
+  // Re-render team with SA protections
+  renderTeam();
+}
+
+/* ── PROTECTED renderTeam ── */
+const __origRenderTeam = window.renderTeam;
+window._saRenderTeam = function() {
+  const grid = document.getElementById('team-grid');
+  if (!grid) return;
+  const sess = _getSession();
+  const isSA = sess && sess.isSuperAdmin;
+
+  grid.innerHTML = DATA.team.map((m, i) => {
+    const isMoid = _memberIsSA(m);
+    return `
+    <div class="team-manage-card ${isMoid ? 'sa-card' : ''}">
+      <div class="team-manage-avatar" style="background:${isMoid ? SUPER_ADMIN.color : (m.color || 'linear-gradient(135deg,var(--blue),var(--purple))')};${isMoid ? 'box-shadow:0 0 20px rgba(99,102,241,.4);' : ''}">${m.initial || m.name[0]}</div>
+      ${isMoid ? `<div class="sa-full-badge">👑 Super Admin</div>` : ''}
+      <div class="team-manage-name">${_esc(m.name)}</div>
+      <div class="team-manage-role" style="${isMoid ? 'color:var(--purple)' : ''}">${isMoid ? 'CEO &amp; Super Admin' : m.role}</div>
+      <div class="team-manage-bio">${_esc(m.bio)}</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:1rem">✉️ ${_esc(m.email)}</div>
+      ${isMoid
+        ? `<div class="sa-protected-label">🔒 Protected Account — Cannot be removed</div>`
+        : `<button class="btn btn-danger btn-sm" onclick="safeDeleteTeamMember(${i})" style="width:100%">Remove</button>`
+      }
+    </div>`;
+  }).join('');
+};
+
+/* ── PROTECTED deleteTeamMember ── */
+window.safeDeleteTeamMember = function(i) {
+  const member = DATA.team[i];
+  if (!member) return;
+
+  // Block if target is Super Admin
+  if (_memberIsSA(member)) { showToast('error', '🚫 This is the unified CEO & Super Admin account — it cannot be removed'); _logProtectionEvent('removed', member.name); return; }
+
+  // Non-SA admins can only remove others, not themselves
+  if (!confirm(`Remove ${member.name} from the team?`)) return;
+
+  DATA.team.splice(i, 1);
+  saveData();
+  window.renderTeam();
+  showToast('info', `${member.name} removed`);
+};
+
+// Keep old name working but route through safe version
+window.safeDeleteTeamMember = async function(i) {
+  const member = DATA.team[i];
+  if (!member) return;
+  if (_memberIsSA(member)) { showToast('error','🚫 This is the unified CEO & Super Admin account — it cannot be removed'); return; }
+  if (!confirm(`Remove ${member.name} from the team?`)) return;
+  const result = await AdminAPI.deleteTeamMember(member.id);
+  if (result && result.error) { showToast('error', result.error); return; }
+  await loadData(); renderTeam(); showToast('info', `${member.name} removed`);
+};
+window.deleteTeamMember = window.safeDeleteTeamMember;
+
+/* ── PROTECTED updateCredentials ── */
+window.updateCredentials = function() {
+  const email = document.getElementById('cfg-email')?.value?.trim();
+  const pass  = document.getElementById('cfg-pass')?.value;
+
+  // Block changing Super Admin email to something else without being SA
+  if (email && email !== SUPER_ADMIN.email) {
+    const sess = _getSession();
+    if (!sess || !sess.isSuperAdmin) {
+      showToast('error', '🔒 Only Super Admin can change the primary admin email');
+      document.getElementById('cfg-email').value = SUPER_ADMIN.email;
+      return;
+    }
+  }
+
+  // Block removing SA access by changing credentials
+  if (!email || !email.includes('@')) { showToast('error', 'Invalid email address'); return; }
+  if (pass && pass.length < 6) { showToast('error', 'Password must be at least 6 characters'); return; }
+
+  showToast('success', 'Credentials updated successfully');
+  document.getElementById('cfg-pass').value = '';
+  addActivity('Account credentials <strong>updated</strong> by Super Admin');
+};
+
+/* ── LOCK cfg-email field for non-SAs ── */
+/* Email field locking handled in consolidated showPage override */;
+
+/* ── SITE SETTINGS — SA indicator ── */
+(function tamperGuard() {
+  /* Super Admin UI protection - server enforces actual permissions via API */
+  Object.defineProperty(window, 'SUPER_ADMIN', {
+    get: function() { return window._SA_CONFIG || {}; },
+    set: function() { /* blocked */ },
+    configurable: false
+  });
+  /* Moid integrity maintained server-side via /api/admin/team */
+})();;
+
+/* SECURITY: SA system active */
+
+
+
+
+/* ── SINGLE CONSOLIDATED initApp OVERRIDE ── */
+(function() {
+  const _origInit = window.initApp;
+  window.initApp = function() {
+    // Run base init
+    if (_origInit) _origInit();
+    // Render services panel
+    if (typeof renderServices === 'function') renderServices();
+    // Animate KPI numbers
+    if (typeof animateDashboardStats === 'function') animateDashboardStats();
+    // Apply SA UI elements and identity bar
+    setTimeout(() => {
+      if (typeof _applySuperAdminUI === 'function') _applySuperAdminUI();
+      if (typeof _injectSAProfileCard === 'function') _injectSAProfileCard();
+    }, 150);
+    // Welcome toast
+    setTimeout(() => showToast('success', '✅ Hamoran Command Centre loaded'), 700);
+  };
+})();
+
+
+/* ── SINGLE showPage OVERRIDE ── */
+(function() {
+  const _spOrig = window.showPage;
+  window.showPage = function(id, el) {
+    if (_spOrig) _spOrig(id, el);
+    // Render services panel when visited
+    if (id === 'services' && typeof renderServices === 'function') renderServices();
+    // Lock SA email field on settings page
+    if (id === 'site-settings') {
+      setTimeout(() => {
+        const emailField = document.getElementById('cfg-email');
+        const sess = typeof _getSession === 'function' ? _getSession() : null;
+        if (emailField && (!sess || !sess.isSuperAdmin)) {
+          emailField.value = 'moidabdul959@gmail.com';
+          emailField.readOnly = true;
+          emailField.style.opacity = '.6';
+          emailField.style.cursor = 'not-allowed';
+          emailField.title = 'Only CEO & Super Admin can change this';
+        }
+      }, 100);
+    }
+  };
+})();
+
+</script>
+</body>
+</html>

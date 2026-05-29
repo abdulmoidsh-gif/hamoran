@@ -1,0 +1,38 @@
+[
+  {
+    "id": "moid-ceo-superadmin",
+    "name": "Moid",
+    "role": "CEO & Super Admin",
+    "bio": "Founder, visionary leader, and Super Admin of Hamoran. Combines deep technical knowledge with entrepreneurial drive.",
+    "email": "[server-configured]",
+    "initial": "M",
+    "color": "linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899)",
+    "isSuperAdmin": true,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "hanzala-coo",
+    "name": "Hanzala",
+    "role": "Chief Operating Officer",
+    "bio": "Operations mastermind ensuring every project is delivered on time and to the highest standard.",
+    "email": "hanzala@hamoran.co.uk",
+    "initial": "H",
+    "color": "linear-gradient(135deg,#0e7490,#2563eb)",
+    "isSuperAdmin": false,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "arman-cmo",
+    "name": "Arman",
+    "role": "Chief Marketing Officer",
+    "bio": "Creative strategist and performance marketing expert. Crafts campaigns that generate real, measurable results.",
+    "email": "arman@hamoran.co.uk",
+    "initial": "A",
+    "color": "linear-gradient(135deg,#7c3aed,#db2777)",
+    "isSuperAdmin": false,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+]

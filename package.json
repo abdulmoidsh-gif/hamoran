@@ -1,23 +1,27 @@
 {
-  "name": "hamoran",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "hamoran-secure",
+  "version": "2.0.0",
+  "description": "Hamoran Agency — Secure Backend",
+  "main": "server/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start":    "NODE_ENV=production node server/index.js",
+    "dev":      "NODE_ENV=development node server/index.js",
+    "setup":    "node scripts/setup.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/abdulmoidsh-gif/hamoran.git"
+  "engines": {
+    "node": ">=18.0.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/abdulmoidsh-gif/hamoran/issues"
-  },
-  "homepage": "https://github.com/abdulmoidsh-gif/hamoran#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "bcryptjs":              "^2.4.3",
+    "cookie-parser":         "^1.4.7",
+    "cors":                  "^2.8.5",
+    "dotenv":                "^16.4.7",
+    "express":               "^4.21.2",
+    "express-rate-limit":    "^7.5.0",
+    "helmet":                "^8.0.0",
+    "jsonwebtoken":          "^9.0.2",
+    "rate-limiter-flexible": "^5.0.5",
+    "uuid":                  "^11.1.0",
+    "zod":                   "^3.24.4"
   }
 }
