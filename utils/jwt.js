@@ -17,7 +17,9 @@ const ACCESS_EXPIRY  = process.env.JWT_ACCESS_EXPIRY  || '15m';
 const REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 
 // ── Token store (issued refresh tokens — enables server-side invalidation) ──
-const TOKEN_FILE = path.join(__dirname, '../data/refresh-tokens.json');
+const TOKEN_FILE = process.env.VERCEL
+  ? '/tmp/hamoran-refresh-tokens.json'
+  : path.join(__dirname, '../data/refresh-tokens.json');
 
 let _tokenStore = null;
 

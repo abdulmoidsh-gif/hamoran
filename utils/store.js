@@ -10,53 +10,58 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { sanitizeForStorage } = require('./sanitize');
 
-const DATA_DIR = path.join(__dirname, '../data');
+const DATA_DIR  = path.join(__dirname, '../data');
+const WRITE_DIR = process.env.VERCEL ? '/tmp/hamoran-data' : DATA_DIR;
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure write directory exists
+if (!fs.existsSync(WRITE_DIR)) fs.mkdirSync(WRITE_DIR, { recursive: true });
 
-function filePath(collection) {
-  // Whitelist valid collection names to prevent path traversal
-  const allowed = new Set(['leads', 'contacts', 'aichats', 'team', 'testimonials', 'blogposts', 'settings']);
-  if (!allowed.has(collection)) throw new Error(`Unknown collection: ${collection}`);
-  return path.join(DATA_DIR, `${collection}.json`);
+const ALLOWED_COLLECTIONS = new Set(['leads', 'contacts', 'aichats', 'team', 'testimonials', 'blogposts', 'settings']);
+const ALLOWED_OBJECTS     = new Set(['pricing', 'seo', 'site-settings']);
+
+function readFilePath(name) {
+  return path.join(DATA_DIR, `${name}.json`);
+}
+
+function writeFilePath(name) {
+  return path.join(WRITE_DIR, `${name}.json`);
 }
 
 function readCollection(collection) {
-  const fp = filePath(collection);
-  try {
-    if (!fs.existsSync(fp)) return [];
-    const raw = fs.readFileSync(fp, 'utf8');
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+  if (!ALLOWED_COLLECTIONS.has(collection)) throw new Error(`Unknown collection: ${collection}`);
+  // Read from write dir first (mutated data), fall back to static data dir
+  const paths = [writeFilePath(collection), readFilePath(collection)];
+  for (const fp of paths) {
+    try {
+      if (!fs.existsSync(fp)) continue;
+      const parsed = JSON.parse(fs.readFileSync(fp, 'utf8'));
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { continue; }
   }
+  return [];
 }
 
 function writeCollection(collection, data) {
-  const fp = filePath(collection);
+  if (!ALLOWED_COLLECTIONS.has(collection)) throw new Error(`Unknown collection: ${collection}`);
   if (!Array.isArray(data)) throw new Error('Data must be an array');
-  fs.writeFileSync(fp, JSON.stringify(data, null, 2), 'utf8');
+  fs.writeFileSync(writeFilePath(collection), JSON.stringify(data, null, 2), 'utf8');
 }
 
 function readObject(key) {
-  const allowed = new Set(['pricing', 'seo', 'site-settings']);
-  if (!allowed.has(key)) throw new Error(`Unknown object key: ${key}`);
-  const fp = path.join(DATA_DIR, `${key}.json`);
-  try {
-    if (!fs.existsSync(fp)) return null;
-    return JSON.parse(fs.readFileSync(fp, 'utf8'));
-  } catch {
-    return null;
+  if (!ALLOWED_OBJECTS.has(key)) throw new Error(`Unknown object key: ${key}`);
+  const paths = [writeFilePath(key), readFilePath(key)];
+  for (const fp of paths) {
+    try {
+      if (!fs.existsSync(fp)) continue;
+      return JSON.parse(fs.readFileSync(fp, 'utf8'));
+    } catch { continue; }
   }
+  return null;
 }
 
 function writeObject(key, obj) {
-  const allowed = new Set(['pricing', 'seo', 'site-settings']);
-  if (!allowed.has(key)) throw new Error(`Unknown object key: ${key}`);
-  const fp = path.join(DATA_DIR, `${key}.json`);
-  fs.writeFileSync(fp, JSON.stringify(obj, null, 2), 'utf8');
+  if (!ALLOWED_OBJECTS.has(key)) throw new Error(`Unknown object key: ${key}`);
+  fs.writeFileSync(writeFilePath(key), JSON.stringify(obj, null, 2), 'utf8');
 }
 
 // ── Collection CRUD ────────────────────────────────────────
