@@ -38,7 +38,6 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
   };
   console.error('[ERROR]', JSON.stringify(logEntry));
 
-  // Temporary: expose message in production for debugging (remove after fix)
   const statusCode = err.statusCode || err.status || 500;
   const isOperational = err.isOperational === true;
 
@@ -51,11 +50,10 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
     });
   }
 
-  // Unhandled / server errors
+  // Unhandled / server errors — generic message only
   return res.status(statusCode).json({
     error:   'Internal Server Error',
-    message: err.message || 'Something went wrong. Please try again later.',
-    debug:   err.stack,
+    message: 'Something went wrong. Please try again later.',
   });
 }
 
