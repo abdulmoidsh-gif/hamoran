@@ -48,10 +48,15 @@ function csrfTokenRoute(req, res) {
   const sessionId = req.cookies?.ham_access || crypto.randomBytes(16).toString('hex');
   const token = generateCsrfToken(sessionId);
 
-  // Set the cookie (readable by JS so the frontend can include it in headers)
+  // The __Host- prefix requires Secure=true. Use req.secure (which honours
+  // the trust-proxy setting and reads X-Forwarded-Proto on Vercel) so this
+  // works in production even when NODE_ENV is not explicitly set to 'production'.
+  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https'
+    || process.env.NODE_ENV === 'production';
+
   res.cookie('__Host-csrf', token, {
     httpOnly: false,       // JS must be able to read this
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'Strict',
     maxAge: 60 * 60 * 1000, // 1 hour
     path: '/',

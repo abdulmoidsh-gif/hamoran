@@ -25,12 +25,12 @@ const REQUIRED_ENV = [
   'JWT_REFRESH_SECRET',
   'CSRF_SECRET',
 ];
-for (const key of REQUIRED_ENV) {
-  if (!process.env[key]) {
-    console.error(`[STARTUP ERROR] Missing required environment variable: ${key}`);
-    console.error('Copy .env.example to .env and fill in all values.');
-    process.exit(1);
-  }
+const _missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
+if (_missingEnv.length > 0) {
+  console.error(`[STARTUP ERROR] Missing required environment variables: ${_missingEnv.join(', ')}`);
+  console.error('Set these in your Vercel dashboard (Settings → Environment Variables) or in .env.');
+  // Do NOT call process.exit() — in Vercel serverless that silently kills the function
+  // and leaves the client hanging with no response. A 503 is returned instead (see below).
 }
 
 const express      = require('express');
@@ -51,6 +51,18 @@ const adminRouter   = require('../routes/admin');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 const isProd = process.env.NODE_ENV === 'production';
+
+// ── 0. Env-guard: return 503 for API calls if env vars are missing ─
+// This prevents the function from crashing silently (which causes fetch to hang
+// forever in the browser, showing no error and no redirect — the "nothing happens" bug).
+if (_missingEnv.length > 0) {
+  app.use('/api', (req, res) => {
+    res.status(503).json({
+      error: 'Server configuration error',
+      message: `Missing environment variables: ${_missingEnv.join(', ')}. Set them in Vercel → Settings → Environment Variables and redeploy.`,
+    });
+  });
+}
 
 // ── 1. HTTPS redirect ─────────────────────────────────────
 if (process.env.FORCE_HTTPS === 'true') {

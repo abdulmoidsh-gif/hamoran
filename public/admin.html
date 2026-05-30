@@ -937,7 +937,12 @@ body { background:var(--bg); color:var(--white); font-family:var(--font-body); m
             <div class="glass-card">
               <div class="card-title">Authentication <span class="sa-full-badge" style="font-size:.62rem;padding:2px 9px">👑 CEO &amp; Super Admin Account</span></div>
               <div class="form-group"><label class="form-label">Admin Email</label><input class="form-input" type="email" id="cfg-email" value="moidabdul959@gmail.com"></div>
-              <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="cfg-pass" placeholder="Leave blank to keep current"></div>
+              <div class="form-group"><label class="form-label">Current Password</label><input class="form-input" type="password" id="cfg-current-pass" placeholder="Your current password (required)"></div>
+              <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="cfg-pass" placeholder="Min 12 chars, upper/lower/number/symbol"></div>
+              <div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" id="cfg-confirm-pass" placeholder="Repeat new password"></div>
+              <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:.8rem 1rem;font-size:.78rem;color:#fbbf24;margin-bottom:.8rem">
+                ⚠️ After updating, copy the hash from the browser console (F12) and paste it into <strong>ADMIN_PASSWORD_HASH</strong> in your Vercel environment variables, then redeploy.
+              </div>
               <button class="btn btn-ghost btn-sm" onclick="updateCredentials()">Update Credentials</button>
             </div>
           </div>
@@ -1118,12 +1123,28 @@ async function _apiFetch(url, opts = {}) {
 
 async function _fetchCsrfToken() {
   try {
-    const res = await fetch('/api/csrf-token', { credentials: 'include' });
-    if (res.ok) {
-      const data = await res.json();
-      _csrfToken = data.csrfToken;
+    // AbortController gives us a timeout so doLogin() never hangs forever
+    // if the server is unreachable or misconfigured (missing env vars, etc.)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000); // 8s max
+    try {
+      const res = await fetch('/api/csrf-token', { credentials: 'include', signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        _csrfToken = data.csrfToken;
+      } else {
+        console.warn('[Auth] CSRF endpoint returned', res.status, '— login will continue without CSRF token');
+      }
+    } catch (innerErr) {
+      clearTimeout(timer);
+      if (innerErr.name === 'AbortError') {
+        console.error('[Auth] CSRF fetch timed out (8s) — server may be misconfigured. Check Vercel env vars.');
+      } else {
+        console.warn('[Auth] CSRF fetch failed:', innerErr.message);
+      }
     }
-  } catch (e) { /* CSRF fetch failed — non-fatal for GET requests */ }
+  } catch (e) { /* outer guard — non-fatal */ }
 }
 
 // ── LOGIN ─────────────────────────────────────────────────
@@ -1139,6 +1160,7 @@ async function doLogin() {
 
   const btn = document.querySelector('.login-btn');
   if (btn) { btn.textContent = 'Signing in...'; btn.disabled = true; }
+  if (err) err.textContent = ''; // Clear any previous error
 
   try {
     await _fetchCsrfToken();
@@ -1148,14 +1170,24 @@ async function doLogin() {
       body: JSON.stringify({ email, password: pass }),
     });
 
-    const data = await res.json();
+    // Guard: server may return HTML (e.g. Vercel 500/503) instead of JSON
+    let data = {};
+    try { data = await res.json(); } catch (_e) { /* non-JSON response — data stays {} */ }
 
+    console.debug('[Auth] Login response:', res.status, data);
+
+    if (res.status === 503) {
+      if (err) err.textContent = 'Server configuration error. Check Vercel environment variables (ADMIN_EMAIL, ADMIN_PASSWORD_HASH, JWT secrets, CSRF_SECRET).';
+      console.error('[Auth] 503 — missing env vars on server:', data.message);
+      return;
+    }
     if (res.status === 429) {
       if (err) err.textContent = data.message || 'Too many attempts. Please wait before trying again.';
       return;
     }
     if (!res.ok) {
       if (err) err.textContent = data.message || 'Invalid credentials.';
+      console.warn('[Auth] Login failed:', res.status, data.message || data.error || '(no message)');
       // Shake effect
       const card = document.querySelector('.login-card');
       if (card) { card.style.animation = 'none'; void card.offsetWidth; card.style.animation = 'loginShake .4s ease'; }
@@ -1164,6 +1196,7 @@ async function doLogin() {
 
     // Success — server set HttpOnly cookies, we get safe user info
     _uiSession = data.user;
+    console.info('[Auth] Login successful — welcome', data.user?.name);
 
     const ls  = document.getElementById('login-screen');
     const app = document.getElementById('app');
@@ -1173,7 +1206,8 @@ async function doLogin() {
     initApp();
 
   } catch (e) {
-    if (err) err.textContent = 'Connection error. Please try again.';
+    console.error('[Auth] Login unexpected error:', e.name, e.message);
+    if (err) err.textContent = 'Connection error — check the browser console (F12) for details.';
   } finally {
     if (btn) { btn.textContent = 'Sign In →'; btn.disabled = false; }
   }
@@ -1353,17 +1387,7 @@ function saveData() {
 }
 
 // ── AUTH ──
-/* Old doLogin removed — authentication now handled by /api/auth/login */
-document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-
-function doLogout() {
-  document.getElementById('app').classList.remove('visible');
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-screen').style.opacity = '1';
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginPass').value = '';
-  document.getElementById('loginErr').textContent = '';
-}
+// doLogin and doLogout are defined above — no duplicate definitions here
 
 // ── INIT ──
 let chartsInit = false;
@@ -2114,7 +2138,7 @@ const SUPER_ADMIN = Object.freeze({
     'access_all_data','modify_billing','reset_credentials','purge_data',
     'system_config','super_admin_transfer'
   ])
-}));
+});
 
 /* ── SESSION AUTHORITY ── */
 /* Session helpers (UI only, auth is server-side) */
@@ -2126,25 +2150,7 @@ function _forceLogout(reason) {
 }
 
 
-function _getSession() {
-  if (_currentSession) return _currentSession;
-  try {
-    const raw = /* _ham_sa_token removed — auth now via HttpOnly cookie */
-    if (!raw) return null;
-    const parsed = JSON.parse(atob(raw));
-    if (parsed.sig !== SUPER_ADMIN._sig) return null;  // tamper check
-    if (parsed.exp && Date.now() > parsed.exp) { /* _ham_sa_token removed — auth now via HttpOnly cookie */ return null; } // expired
-    // Validate email format
-    if(!parsed.e || !parsed.e.includes('@')){ /* _ham_sa_token removed — auth now via HttpOnly cookie */ return null; }
-    _currentSession = { email: parsed.e, isSuperAdmin: parsed.e === SUPER_ADMIN.email, loginTime: parsed.t };
-    return _currentSession;
-  } catch(e) { /* _ham_sa_token removed — auth now via HttpOnly cookie */ return null; }
-}
-
-function _clearSession() {
-  _currentSession = null;
-  try { /* _ham_sa_token removed — auth now via HttpOnly cookie */ } catch(e){}
-}
+// _getSession and _clearSession defined above — no duplicate definitions needed
 
 /* ── PROTECTION GUARD ── */
 function _isSuperAdminTarget(emailOrName) {
@@ -2188,11 +2194,6 @@ function _requireSuperAdmin(action) {
 
 function _logProtectionEvent(action, target) {
   console.warn(`[HAMORAN SECURITY] Blocked attempt to ${action} Super Admin account (${target})`);
-  try {
-    const log = JSON.parse(/* _ham_sec_log removed */
-    log.push({ action, target, time: new Date().toISOString(), blocked: true });
-    /* _ham_sec_log removed */
-  } catch(e){}
 }
 
 /* ── PATCH DOLOGIN to set session ── */
@@ -2335,28 +2336,64 @@ window.safeDeleteTeamMember = async function(i) {
 };
 window.deleteTeamMember = window.safeDeleteTeamMember;
 
-/* ── PROTECTED updateCredentials ── */
-window.updateCredentials = function() {
-  const email = document.getElementById('cfg-email')?.value?.trim();
-  const pass  = document.getElementById('cfg-pass')?.value;
+/* ── PROTECTED updateCredentials — calls the real API ── */
+window.updateCredentials = async function() {
+  const email       = document.getElementById('cfg-email')?.value?.trim();
+  const currentPass = document.getElementById('cfg-current-pass')?.value;
+  const pass        = document.getElementById('cfg-pass')?.value;
+  const confirmPass = document.getElementById('cfg-confirm-pass')?.value;
 
-  // Block changing Super Admin email to something else without being SA
-  if (email && email !== SUPER_ADMIN.email) {
+  // Basic validation
+  if (!email || !email.includes('@')) { showToast('error', 'Invalid email address'); return; }
+  if (!currentPass) { showToast('error', 'Enter your current password to authorise the change'); return; }
+  if (!pass) { showToast('error', 'Enter a new password'); return; }
+  if (pass.length < 12) { showToast('error', 'New password must be at least 12 characters'); return; }
+  if (pass !== confirmPass) { showToast('error', 'New passwords do not match'); return; }
+
+  // Block changing Super Admin email without SA privilege
+  if (email !== (SUPER_ADMIN.email || 'moidabdul959@gmail.com')) {
     const sess = _getSession();
     if (!sess || !sess.isSuperAdmin) {
       showToast('error', '🔒 Only Super Admin can change the primary admin email');
-      document.getElementById('cfg-email').value = SUPER_ADMIN.email;
+      document.getElementById('cfg-email').value = SUPER_ADMIN.email || 'moidabdul959@gmail.com';
       return;
     }
   }
 
-  // Block removing SA access by changing credentials
-  if (!email || !email.includes('@')) { showToast('error', 'Invalid email address'); return; }
-  if (pass && pass.length < 6) { showToast('error', 'Password must be at least 6 characters'); return; }
+  try {
+    showToast('info', 'Verifying current password and generating new hash…');
+    const res = await _apiFetch('/api/admin/credentials', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword: currentPass, newPassword: pass, confirmPassword: confirmPass }),
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_e) {}
 
-  showToast('success', 'Credentials updated successfully');
-  document.getElementById('cfg-pass').value = '';
-  addActivity('Account credentials <strong>updated</strong> by Super Admin');
+    if (!res.ok) {
+      showToast('error', data.error || data.message || 'Failed to update credentials');
+      console.error('[Credentials] API error:', res.status, data);
+      return;
+    }
+
+    // The API cannot automatically update Vercel env vars — the new hash must be
+    // copied manually. Log it prominently so it's easy to find.
+    console.info('%c[CREDENTIALS] ✅ New ADMIN_PASSWORD_HASH generated — copy this value:', 'color:#10b981;font-weight:bold;font-size:14px');
+    console.info('%c' + data.newHash, 'color:#f59e0b;font-weight:bold;font-size:13px;background:#1a1a2e;padding:4px 8px;border-radius:4px');
+    console.info('%c[CREDENTIALS] 👉 Steps to activate:', 'color:#3b82f6;font-weight:bold');
+    console.info('  1. Go to https://vercel.com → your project → Settings → Environment Variables');
+    console.info('  2. Update ADMIN_PASSWORD_HASH with the value above');
+    console.info('  3. Redeploy the project');
+
+    showToast('success', '✅ Hash generated — open browser console (F12) for Vercel update steps');
+    document.getElementById('cfg-current-pass').value = '';
+    document.getElementById('cfg-pass').value = '';
+    if (document.getElementById('cfg-confirm-pass')) document.getElementById('cfg-confirm-pass').value = '';
+    addActivity('Password hash <strong>generated</strong> — update Vercel env vars to activate');
+
+  } catch (e) {
+    console.error('[Credentials] Connection error:', e);
+    showToast('error', 'Connection error — ensure you are logged in and try again');
+  }
 };
 
 /* ── LOCK cfg-email field for non-SAs ── */
